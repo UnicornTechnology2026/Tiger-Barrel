@@ -51,10 +51,7 @@ export default function AgentLayout() {
   return (
     <div className="flex min-h-screen flex-col bg-slate-50">
       {/* Top bar */}
-      <header
-        className="sticky top-0 z-30 border-b border-brand-900 bg-brand-700 bg-cover bg-center"
-        style={{ backgroundImage: `url(${bgPrint})` }}
-      >
+      <header className="sticky top-0 z-30 border-b border-brand-900 bg-brand-700 bg-cover bg-center">
         <div className="mx-auto flex h-14 max-w-lg items-center justify-between px-4">
           <div className="flex items-center gap-3">
             <img src={logo} alt="Tiger Barrel" className="h-9 w-auto" />

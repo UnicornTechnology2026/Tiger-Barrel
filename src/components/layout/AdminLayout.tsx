@@ -17,7 +17,7 @@ import {
 import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
-import bgPrint from "../../assest/bg print.png";
+// import bgPrint from "../../assest/bg print.png";
 import logo from "../../assest/logo.png";
 
 const navItems = [
@@ -102,10 +102,7 @@ export default function AdminLayout() {
   return (
     <div className="flex min-h-screen bg-slate-50">
       {/* Desktop sidebar */}
-      <aside
-        className="hidden w-64 shrink-0 flex-col border-r border-brand-900 bg-brand-700 bg-cover bg-center lg:flex"
-        style={{ backgroundImage: `url(${bgPrint})` }}
-      >
+      <aside className="hidden w-64 shrink-0 flex-col border-r border-brand-900 bg-brand-700 bg-cover bg-center lg:flex">
         <NavContent />
       </aside>
 
@@ -116,10 +113,7 @@ export default function AdminLayout() {
             className="absolute inset-0 bg-black/40"
             onClick={() => setSidebarOpen(false)}
           />
-          <aside
-            className="absolute left-0 top-0 flex h-full w-64 flex-col bg-brand-700 bg-cover bg-center shadow-xl"
-            style={{ backgroundImage: `url(${bgPrint})` }}
-          >
+          <aside className="absolute left-0 top-0 flex h-full w-64 flex-col bg-brand-700 bg-cover bg-center shadow-xl">
             <button
               className="absolute right-3 top-4 rounded-lg p-1 text-white"
               onClick={() => setSidebarOpen(false)}

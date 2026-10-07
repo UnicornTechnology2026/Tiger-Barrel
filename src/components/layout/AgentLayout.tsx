@@ -54,10 +54,10 @@ export default function AgentLayout() {
       <header className="sticky top-0 z-30 border-b border-brand-900 bg-brand-700 bg-cover bg-center">
         <div className="mx-auto flex h-14 max-w-lg items-center justify-between px-4">
           <div className="flex items-center gap-3">
-            <img src={logo} alt="Tiger Barrel" className="h-9 w-auto" />
+            <img src={logo} alt="Tiger's Barrel" className="h-9 w-auto" />
             <div>
               <p className="text-xs font-semibold tracking-wide text-gold-300">
-                Tiger Barrel
+                Tiger's Barrel
               </p>
               <p className="text-sm font-semibold text-white truncate max-w-[160px]">
                 {profile?.full_name}

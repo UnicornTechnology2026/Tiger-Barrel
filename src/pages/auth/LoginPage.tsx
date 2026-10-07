@@ -50,11 +50,11 @@ export default function LoginPage() {
         <div className="mb-8 text-center">
           <img
             src={logo}
-            alt="Tiger Barrel"
+            alt="Tiger's Barrel"
             className="mx-auto mb-3 h-28 w-auto drop-shadow-[0_4px_12px_rgba(0,0,0,0.45)]"
           />
           <h1 className="text-3xl font-bold tracking-wide text-white">
-            Tiger Barrel
+            Tiger's Barrel
           </h1>
           <p className="mt-1 text-sm text-red-100">Sign in to continue</p>
         </div>

@@ -47,10 +47,10 @@ export default function AdminLayout() {
   const NavContent = () => (
     <>
       <div className="flex h-16 items-center gap-3 border-b border-white/15 px-4">
-        <img src={logo} alt="Tiger Barrel" className="h-10 w-auto" />
+        <img src={logo} alt="Tiger's Barrel" className="h-10 w-auto" />
         <div>
           <p className="text-sm font-bold tracking-wide text-white">
-            Tiger Barrel
+            Tiger's Barrel
           </p>
           <p className="text-[10px] text-gold-300">Admin Console</p>
         </div>
@@ -135,7 +135,8 @@ export default function AdminLayout() {
             <Menu className="h-5 w-5" />
           </button>
           <h1 className="text-sm font-semibold text-slate-900 lg:text-base">
-            Tiger Barrel <span className="text-slate-400">· Admin Console</span>
+            Tiger's Barrel{" "}
+            <span className="text-slate-400">· Admin Console</span>
           </h1>
         </header>
         <main className="flex-1 overflow-auto p-4 lg:p-6">

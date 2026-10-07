@@ -6,8 +6,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useAuth } from "@/contexts/AuthContext";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import logo from "../../assest/logo.png";
-import bgPrint from "../../assest/bg print.png";
+import logo from "@/assest/logo.png";
+import bgPrint from "@/assest/bg print.png";
 
 const schema = z.object({
   email: z.string().email("Enter a valid email"),

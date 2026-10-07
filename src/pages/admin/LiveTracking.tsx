@@ -317,12 +317,12 @@ export default function LiveTracking() {
           <div className="card max-h-[520px] overflow-y-auto">
             <div className="flex items-center gap-2 border-b border-slate-100 px-4 py-3 text-sm font-medium text-slate-500">
               <Users className="h-4 w-4" />
-              Agents ({allAgents.length})
+              Promoter ({allAgents.length})
             </div>
 
             {allAgents.length === 0 ? (
               <p className="px-4 py-8 text-center text-sm text-slate-400">
-                No active agents
+                No active promoters
               </p>
             ) : (
               allAgents.map((agent) => {

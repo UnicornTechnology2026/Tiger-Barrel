@@ -17,12 +17,11 @@ import {
 import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
-// import bgPrint from "../../assest/bg print.png";
-import logo from "../../assest/logo.png";
+import logoText from "@/assest/logo_text.png";
 
 const navItems = [
   { to: "/admin", icon: LayoutDashboard, label: "Dashboard", end: true },
-  { to: "/admin/agents", icon: Users, label: "Agents" },
+  { to: "/admin/agents", icon: Users, label: "Promoters" },
   { to: "/admin/outlets", icon: Store, label: "Outlets" },
   { to: "/admin/tracking", icon: Map, label: "Live Tracking" },
   { to: "/admin/visits", icon: ClipboardList, label: "Visits" },
@@ -46,14 +45,8 @@ export default function AdminLayout() {
 
   const NavContent = () => (
     <>
-      <div className="flex h-16 items-center gap-3 border-b border-white/15 px-4">
-        <img src={logo} alt="Tiger's Barrel" className="h-10 w-auto" />
-        <div>
-          <p className="text-sm font-bold tracking-wide text-white">
-            Tiger's Barrel
-          </p>
-          <p className="text-[10px] text-gold-300">Admin Console</p>
-        </div>
+      <div className="flex h-16 items-center justify-center border-b border-white/15 px-4">
+        <img src={logoText} alt="Tiger's Barrel" className="h-14 w-auto" />
       </div>
       <nav className="flex-1 space-y-0.5 overflow-y-auto p-3">
         {navItems.map(({ to, icon: Icon, label, end }) => (
@@ -127,18 +120,6 @@ export default function AdminLayout() {
 
       {/* Main */}
       <div className="flex flex-1 flex-col min-w-0">
-        <header className="sticky top-0 z-20 flex h-14 items-center gap-3 border-b border-slate-200 bg-white px-4 lg:px-6">
-          <button
-            className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 lg:hidden"
-            onClick={() => setSidebarOpen(true)}
-          >
-            <Menu className="h-5 w-5" />
-          </button>
-          <h1 className="text-sm font-semibold text-slate-900 lg:text-base">
-            Tiger's Barrel{" "}
-            <span className="text-slate-400">· Admin Console</span>
-          </h1>
-        </header>
         <main className="flex-1 overflow-auto p-4 lg:p-6">
           <Outlet />
         </main>

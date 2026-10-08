@@ -1,66 +1,138 @@
-import { useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
-import { supabase } from '@/lib/supabase'
-import { EmptyState } from '@/components/shared/EmptyState'
-import { Image, X } from 'lucide-react'
-import { formatDate, getTodayISO } from '@/lib/utils'
-import type { Photo } from '@/types'
+import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/lib/supabase";
+import { EmptyState } from "@/components/shared/EmptyState";
+import { Image, X, Store, Calendar } from "lucide-react";
+import { formatDate, getTodayISO } from "@/lib/utils";
+import type { Photo } from "@/types";
+
+type PhotoWithRelations = Photo & {
+  agent?: { full_name: string } | null;
+  outlet?: { name: string } | null;
+};
 
 export default function PhotosGallery() {
-  const [dateFilter, setDateFilter] = useState(getTodayISO())
-  const [preview, setPreview] = useState<Photo | null>(null)
+  const [outletId, setOutletId] = useState("");
+  const [date, setDate] = useState(getTodayISO());
+  const [preview, setPreview] = useState<PhotoWithRelations | null>(null);
 
-  const { data: photos = [], isLoading } = useQuery({
-    queryKey: ['admin-photos', dateFilter],
+  // Outlet names for the dropdown
+  const { data: outlets = [] } = useQuery({
+    queryKey: ["admin-photo-outlets"],
     queryFn: async () => {
-      let q = supabase
-        .from('photos')
-        .select('*, agent:profiles!agent_id(full_name), outlet:outlets(name)')
-        .order('created_at', { ascending: false })
-        .limit(60)
+      const { data, error } = await supabase
+        .from("outlets")
+        .select("id, name")
+        .order("name");
+      if (error) throw error;
+      return data as { id: string; name: string }[];
+    },
+  });
 
-      if (dateFilter) {
-        q = q.gte('created_at', `${dateFilter}T00:00:00`).lte('created_at', `${dateFilter}T23:59:59`)
-      }
+  // Photos for the selected outlet + date only
+  const { data: photos = [], isLoading } = useQuery({
+    queryKey: ["admin-photos", outletId, date],
+    enabled: !!outletId && !!date,
+    queryFn: async () => {
+      const start = new Date(`${date}T00:00:00`).toISOString();
+      const end = new Date(`${date}T23:59:59.999`).toISOString();
 
-      const { data, error } = await q
-      if (error) throw error
+      const { data, error } = await supabase
+        .from("photos")
+        .select("*, agent:profiles!agent_id(full_name), outlet:outlets(name)")
+        .eq("outlet_id", outletId)
+        .gte("created_at", start)
+        .lte("created_at", end)
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
 
       const withUrls = await Promise.all(
-        (data as Photo[]).map(async (p) => {
+        (data as PhotoWithRelations[]).map(async (p) => {
           const { data: signed } = await supabase.storage
-            .from('outlet-photos')
-            .createSignedUrl(p.storage_path, 3600)
-          return { ...p, signed_url: signed?.signedUrl }
-        })
-      )
-      return withUrls
+            .from("outlet-photos")
+            .createSignedUrl(p.storage_path, 3600);
+          return { ...p, signed_url: signed?.signedUrl };
+        }),
+      );
+      return withUrls;
     },
-  })
+  });
+
+  const selectedOutletName = outlets.find((o) => o.id === outletId)?.name;
 
   return (
-    <div className="space-y-5">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-xl font-bold text-slate-900">Photos Gallery</h1>
-          <p className="text-sm text-slate-500">{photos.length} photos</p>
-        </div>
-        <input
-          type="date"
-          className="input w-auto"
-          value={dateFilter}
-          onChange={(e) => setDateFilter(e.target.value)}
-        />
+    <div className="space-y-6">
+      {/* Header: title + count only */}
+      <div>
+        <h1 className="text-xl font-bold text-slate-900">Photos Gallery</h1>
+        <p className="text-sm text-slate-500">
+          {outletId
+            ? `${photos.length} photos`
+            : "Select an outlet and date to view photos"}
+        </p>
       </div>
 
-      {isLoading ? (
+      {/* Outlet + Date filters, centered in the middle of the screen */}
+      <div
+        className={
+          outletId
+            ? "flex justify-center"
+            : "flex min-h-[40vh] items-center justify-center"
+        }
+      >
+        <div className="w-full max-w-xl rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div className="flex flex-col gap-1">
+              <label className="flex items-center gap-1 text-xs font-medium text-slate-600">
+                <Store className="h-3.5 w-3.5" /> Outlet name
+              </label>
+              <select
+                className="input w-full"
+                value={outletId}
+                onChange={(e) => setOutletId(e.target.value)}
+              >
+                <option value="">Select outlet</option>
+                {outlets.map((o) => (
+                  <option key={o.id} value={o.id}>
+                    {o.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="flex flex-col gap-1">
+              <label className="flex items-center gap-1 text-xs font-medium text-slate-600">
+                <Calendar className="h-3.5 w-3.5" /> Date
+              </label>
+              <input
+                type="date"
+                className="input w-full"
+                value={date}
+                max={getTodayISO()}
+                onChange={(e) => setDate(e.target.value)}
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Photos for the selected outlet + date */}
+      {!outletId ? null : isLoading ? (
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
           {Array.from({ length: 12 }).map((_, i) => (
-            <div key={i} className="aspect-square animate-pulse rounded-lg bg-slate-100" />
+            <div
+              key={i}
+              className="aspect-square animate-pulse rounded-lg bg-slate-100"
+            />
           ))}
         </div>
       ) : photos.length === 0 ? (
-        <EmptyState icon={Image} title="No photos" description="Photos uploaded by agents will appear here." />
+        <EmptyState
+          icon={Image}
+          title="No photos"
+          description={`No photos found for ${selectedOutletName ?? "this outlet"} on ${formatDate(date)}.`}
+        />
       ) : (
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
           {photos.map((p) => (
@@ -83,7 +155,7 @@ export default function PhotosGallery() {
               )}
               <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/60 to-transparent p-2 opacity-0 transition-opacity group-hover:opacity-100">
                 <p className="truncate text-xs text-white">
-                  {(p as Photo & { agent?: { full_name: string } }).agent?.full_name}
+                  {p.agent?.full_name}
                 </p>
               </div>
             </button>
@@ -91,6 +163,7 @@ export default function PhotosGallery() {
         </div>
       )}
 
+      {/* Full-size preview */}
       {preview && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4"
@@ -102,7 +175,10 @@ export default function PhotosGallery() {
           >
             <X className="h-6 w-6" />
           </button>
-          <div className="max-h-[90vh] max-w-3xl" onClick={(e) => e.stopPropagation()}>
+          <div
+            className="max-h-[90vh] max-w-3xl"
+            onClick={(e) => e.stopPropagation()}
+          >
             {preview.signed_url && (
               <img
                 src={preview.signed_url}
@@ -112,14 +188,15 @@ export default function PhotosGallery() {
             )}
             <div className="mt-3 text-center text-sm text-white">
               <p>
-                {(preview as Photo & { agent?: { full_name: string } }).agent?.full_name} ·{' '}
-                {(preview as Photo & { outlet?: { name: string } }).outlet?.name}
+                {preview.agent?.full_name} · {preview.outlet?.name}
               </p>
-              <p className="text-white/60">{formatDate(preview.created_at, 'datetime')}</p>
+              <p className="text-white/60">
+                {formatDate(preview.created_at, "datetime")}
+              </p>
             </div>
           </div>
         </div>
       )}
     </div>
-  )
+  );
 }

@@ -21,6 +21,9 @@ import {
   PlusCircle,
   Link2,
   Filter,
+  Power,
+  PowerOff,
+  Pencil,
   type LucideIcon,
 } from "lucide-react";
 import { formatDate, getTodayISO, cn } from "@/lib/utils";
@@ -67,6 +70,21 @@ const ACTION_META: Record<
     icon: PlusCircle,
     tone: "bg-emerald-50 text-emerald-700 ring-emerald-200",
   },
+  update_outlet: {
+    label: "Outlet updated",
+    icon: Pencil,
+    tone: "bg-sky-50 text-sky-700 ring-sky-200",
+  },
+  activate_outlet: {
+    label: "Outlet activated",
+    icon: Power,
+    tone: "bg-emerald-50 text-emerald-700 ring-emerald-200",
+  },
+  deactivate_outlet: {
+    label: "Outlet deactivated",
+    icon: PowerOff,
+    tone: "bg-red-50 text-red-700 ring-red-200",
+  },
 };
 
 function humanize(s: string) {
@@ -104,6 +122,63 @@ function formatValue(v: unknown): string {
   if (v === null || v === undefined) return "—";
   if (typeof v === "object") return JSON.stringify(v);
   return String(v);
+}
+
+type NameMap = Record<string, { name: string }>;
+
+const OUTLET_ACTIONS = [
+  "create_outlet",
+  "update_outlet",
+  "activate_outlet",
+  "deactivate_outlet",
+  "assign_outlet",
+];
+
+/** Human-readable one-liner for outlet-related events. */
+function summarize(
+  log: AuditLog,
+  outlets: NameMap,
+  people: NameMap,
+): string | null {
+  if (!OUTLET_ACTIONS.includes(log.action)) return null;
+  const m = (log.metadata ?? {}) as Record<string, unknown>;
+  const str = (v: unknown) => (typeof v === "string" && v ? v : undefined);
+
+  const outletId = str(m.outlet_id) ?? log.entity_id ?? undefined;
+  const outletName =
+    str(m.outlet_name) ??
+    str(m.name) ??
+    (outletId ? outlets[outletId]?.name : undefined) ??
+    "an outlet";
+  const code = str(m.outlet_code) ?? str(m.code);
+  const label = code ? `${outletName} (${code})` : outletName;
+
+  switch (log.action) {
+    case "create_outlet":
+      return `New outlet added: ${label}`;
+    case "update_outlet": {
+      const changed = Array.isArray(m.changed)
+        ? m.changed.map(String).join(", ")
+        : undefined;
+      return changed
+        ? `Outlet updated: ${label} · changed ${changed}`
+        : `Outlet updated: ${label}`;
+    }
+    case "activate_outlet":
+      return `Outlet activated: ${label}`;
+    case "deactivate_outlet":
+      return `Outlet deactivated: ${label}`;
+    case "assign_outlet": {
+      const agentId = str(m.agent_id);
+      const agent =
+        str(m.agent_name) ??
+        (agentId ? people[agentId]?.name : undefined) ??
+        "a promoter";
+      return `${label} assigned to ${agent}`;
+    }
+    default:
+      return null;
+  }
 }
 
 type Range = { from: string; to: string } | null;
@@ -145,6 +220,34 @@ export default function AuditLogsPage() {
     },
   });
 
+  // Name lookups — fill in names for older logs that only stored IDs
+  const { data: outletMap = {} as NameMap } = useQuery({
+    queryKey: ["audit-outlet-names"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("outlets").select("id, name");
+      if (error) throw error;
+      return Object.fromEntries(
+        (data ?? []).map((o) => [o.id as string, { name: o.name as string }]),
+      ) as NameMap;
+    },
+  });
+
+  const { data: peopleMap = {} as NameMap } = useQuery({
+    queryKey: ["audit-people-names"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("id, full_name");
+      if (error) throw error;
+      return Object.fromEntries(
+        (data ?? []).map((p) => [
+          p.id as string,
+          { name: p.full_name as string },
+        ]),
+      ) as NameMap;
+    },
+  });
+
   // Reset secondary filters when the date range changes
   useEffect(() => {
     setActorFilter("all");
@@ -182,11 +285,16 @@ export default function AuditLogsPage() {
     return logs.filter((l) => {
       if (actorFilter !== "all" && (l.actor_id ?? "system") !== actorFilter)
         return false;
-      if (actionFilter !== "all" && l.action !== actionFilter) return false;
+      if (actionFilter === "outlets") {
+        if (!OUTLET_ACTIONS.includes(l.action)) return false;
+      } else if (actionFilter !== "all" && l.action !== actionFilter) {
+        return false;
+      }
       if (term) {
         const hay = [
           l.action,
           actionMeta(l.action).label,
+          summarize(l, outletMap, peopleMap) ?? "",
           l.entity_type,
           l.entity_id ?? "",
           l.actor?.full_name ?? "system",
@@ -198,7 +306,12 @@ export default function AuditLogsPage() {
       }
       return true;
     });
-  }, [logs, actorFilter, actionFilter, search]);
+  }, [logs, actorFilter, actionFilter, search, outletMap, peopleMap]);
+
+  const outletEvents = useMemo(
+    () => logs.filter((l) => OUTLET_ACTIONS.includes(l.action)).length,
+    [logs],
+  );
 
   const lastEvent = logs[0]?.created_at;
 
@@ -286,6 +399,11 @@ export default function AuditLogsPage() {
           {hasStats && (
             <div className="flex flex-wrap gap-3">
               <StatChip icon={Activity} label="Events" value={logs.length} />
+              <StatChip
+                icon={Store}
+                label="Outlet events"
+                value={outletEvents}
+              />
               <StatChip icon={Users} label="Admins" value={actors.length} />
               <StatChip
                 icon={Clock}
@@ -308,7 +426,7 @@ export default function AuditLogsPage() {
               <input
                 type="text"
                 className="input"
-                placeholder="Action, admin, entity…"
+                placeholder="Action, admin, outlet, promoter…"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
               />
@@ -362,6 +480,15 @@ export default function AuditLogsPage() {
             >
               All <span className="opacity-70">({logs.length})</span>
             </Chip>
+            {outletEvents > 0 && (
+              <Chip
+                active={actionFilter === "outlets"}
+                onClick={() => setActionFilter("outlets")}
+              >
+                Outlet activity{" "}
+                <span className="opacity-70">({outletEvents})</span>
+              </Chip>
+            )}
             {actions.map((a) => (
               <Chip
                 key={a.action}
@@ -450,6 +577,7 @@ export default function AuditLogsPage() {
             const meta = actionMeta(log.action);
             const Icon = meta.icon;
             const name = log.actor?.full_name ?? "System";
+            const summary = summarize(log, outletMap, peopleMap);
             return (
               <button
                 key={log.id}
@@ -475,12 +603,21 @@ export default function AuditLogsPage() {
                   <p className="truncate text-base font-semibold text-slate-900">
                     {meta.label}
                   </p>
-                  <p className="mt-0.5 flex items-center gap-1.5 truncate text-sm text-slate-500">
-                    <Store className="h-3.5 w-3.5 shrink-0 text-slate-400" />
-                    {humanize(log.entity_type)}
-                    {log.entity_id && (
-                      <span className="font-mono text-xs text-slate-400">
-                        · {log.entity_id.slice(0, 8)}…
+                  <p className="mt-0.5 flex items-start gap-1.5 text-sm text-slate-500">
+                    <Store className="mt-0.5 h-3.5 w-3.5 shrink-0 text-slate-400" />
+                    {summary ? (
+                      <span className="min-w-0 break-words font-medium text-slate-700">
+                        {summary}
+                      </span>
+                    ) : (
+                      <span className="min-w-0 truncate">
+                        {humanize(log.entity_type)}
+                        {log.entity_id && (
+                          <span className="font-mono text-xs text-slate-400">
+                            {" "}
+                            · {log.entity_id.slice(0, 8)}…
+                          </span>
+                        )}
                       </span>
                     )}
                   </p>
@@ -557,7 +694,11 @@ export default function AuditLogsPage() {
               </button>
             )}
 
-            <DetailPanel log={current} key={current.id} />
+            <DetailPanel
+              log={current}
+              summary={summarize(current, outletMap, peopleMap)}
+              key={current.id}
+            />
 
             {visible.length > 1 && (
               <button
@@ -605,7 +746,13 @@ export default function AuditLogsPage() {
 
 /* ───────── Small helper components ───────── */
 
-function DetailPanel({ log }: { log: AuditLog }) {
+function DetailPanel({
+  log,
+  summary,
+}: {
+  log: AuditLog;
+  summary?: string | null;
+}) {
   const meta = actionMeta(log.action);
   const Icon = meta.icon;
   const entries = log.metadata ? Object.entries(log.metadata) : [];
@@ -634,30 +781,17 @@ function DetailPanel({ log }: { log: AuditLog }) {
         </div>
       </div>
 
+      {summary && (
+        <div className="border-b border-slate-100 bg-brand-50/60 px-5 py-3 text-sm font-medium text-brand-900">
+          {summary}
+        </div>
+      )}
+
       <dl className="divide-y divide-slate-100 text-sm">
         <Row label="Admin" value={log.actor?.full_name ?? "System"} />
         <Row label="When" value={formatDate(log.created_at, "datetime")} />
         <Row label="Entity" value={humanize(log.entity_type)} />
-        {log.entity_id && <Row label="Entity ID" value={log.entity_id} mono />}
       </dl>
-
-      {entries.length > 0 && (
-        <div className="border-t border-slate-100 bg-slate-50 p-5">
-          <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-400">
-            Details
-          </p>
-          <dl className="space-y-2 text-sm">
-            {entries.map(([k, v]) => (
-              <div key={k} className="flex gap-3">
-                <dt className="w-28 shrink-0 text-slate-500">{humanize(k)}</dt>
-                <dd className="min-w-0 break-words font-medium text-slate-800">
-                  {formatValue(v)}
-                </dd>
-              </div>
-            ))}
-          </dl>
-        </div>
-      )}
     </div>
   );
 }

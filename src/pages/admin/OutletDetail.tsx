@@ -7,7 +7,6 @@ import { ArrowLeft, MapPin } from "lucide-react";
 import { toast } from "sonner";
 import type { Outlet, Visit, Photo, Comment, Profile } from "@/types";
 import { useState } from "react";
-import OutletSales from "@/components/admin/OutletSales";
 
 export default function OutletDetailAdmin() {
   const { id } = useParams<{ id: string }>();
@@ -233,8 +232,6 @@ export default function OutletDetailAdmin() {
           </table>
         </div>
       </div>
-
-      <OutletSales outletId={id!} />
 
       <div className="grid gap-4 lg:grid-cols-2">
         <div className="card">

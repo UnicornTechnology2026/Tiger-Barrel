@@ -36,6 +36,7 @@ import AuditLogsPage from "@/pages/admin/AuditLogsPage";
 import SettingsPage from "@/pages/admin/SettingsPage";
 import AdminProfile from "@/pages/admin/AdminProfile";
 import AdminLayout from "@/components/layout/AdminLayout";
+import SalesPage from "@/pages/admin/SalesPage";
 
 function App() {
   const { loading, profile } = useAuth();
@@ -85,6 +86,7 @@ function App() {
         <Route path="outlets/:id" element={<OutletDetailAdmin />} />
         <Route path="tracking" element={<LiveTracking />} />
         <Route path="visits" element={<VisitsPage />} />
+        <Route path="sales" element={<SalesPage />} />
         <Route path="photos" element={<PhotosGallery />} />
         <Route path="comments" element={<CommentsPage />} />
         <Route path="messages" element={<MessagesPage />} />

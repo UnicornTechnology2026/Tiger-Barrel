@@ -11,6 +11,7 @@ import {
   Settings,
   LogOut,
   Shield,
+  IndianRupee,
   X,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
@@ -26,6 +27,7 @@ const navItems = [
   { to: "/admin/outlets", icon: Store, label: "Outlets" },
   { to: "/admin/tracking", icon: Map, label: "Live Tracking" },
   { to: "/admin/visits", icon: ClipboardList, label: "Visits" },
+  { to: "/admin/sales", icon: IndianRupee, label: "Sales" },
   { to: "/admin/photos", icon: Image, label: "Photos" },
   { to: "/admin/comments", icon: MessageSquare, label: "Comments" },
   { to: "/admin/messages", icon: MessageSquare, label: "Messages" },

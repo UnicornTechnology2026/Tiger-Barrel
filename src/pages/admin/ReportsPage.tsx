@@ -166,8 +166,8 @@ export default function ReportsPage() {
           <thead>
             <tr className="border-b border-slate-100 bg-slate-50 text-left text-slate-500">
               <th className="px-5 py-3 font-medium">Date</th>
-              <th className="px-5 py-3 font-medium">Promoter</th>
               <th className="px-5 py-3 font-medium">Outlet</th>
+              <th className="px-5 py-3 font-medium">Promoter</th>
               <th className="px-5 py-3 font-medium">Status</th>
             </tr>
           </thead>
@@ -197,13 +197,13 @@ export default function ReportsPage() {
                   <td className="px-5 py-3 text-slate-500">
                     {formatDate(v.created_at)}
                   </td>
-                  <td className="px-5 py-3 font-medium">
-                    {(v as Visit & { agent?: { full_name: string } }).agent
-                      ?.full_name ?? "—"}
-                  </td>
                   <td className="px-5 py-3">
                     {(v as Visit & { outlet?: { name: string } }).outlet
                       ?.name ?? "—"}
+                  </td>
+                  <td className="px-5 py-3 font-medium">
+                    {(v as Visit & { agent?: { full_name: string } }).agent
+                      ?.full_name ?? "—"}
                   </td>
                   <td className="px-5 py-3 capitalize">
                     {v.status.replace("_", " ")}

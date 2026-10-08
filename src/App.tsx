@@ -1,45 +1,46 @@
-import { Routes, Route, Navigate } from 'react-router-dom'
-import { useAuth } from '@/contexts/AuthContext'
-import { ProtectedRoute } from '@/components/shared/ProtectedRoute'
-import { LoadingScreen } from '@/components/shared/LoadingScreen'
+import { Routes, Route, Navigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
+import { ProtectedRoute } from "@/components/shared/ProtectedRoute";
+import { LoadingScreen } from "@/components/shared/LoadingScreen";
 
 // Auth pages
-import LoginPage from '@/pages/auth/LoginPage'
-import ForgotPasswordPage from '@/pages/auth/ForgotPasswordPage'
-import ResetPasswordPage from '@/pages/auth/ResetPasswordPage'
+import LoginPage from "@/pages/auth/LoginPage";
+import ForgotPasswordPage from "@/pages/auth/ForgotPasswordPage";
+import ResetPasswordPage from "@/pages/auth/ResetPasswordPage";
 
 // Agent pages
-import AgentDashboard from '@/pages/agent/Dashboard'
-import MyOutlets from '@/pages/agent/MyOutlets'
-import OutletDetail from '@/pages/agent/OutletDetail'
-import StartVisit from '@/pages/agent/StartVisit'
-import VisitHistory from '@/pages/agent/VisitHistory'
-import MyPhotos from '@/pages/agent/MyPhotos'
-import MyMessages from '@/pages/agent/MyMessages'
-import MyProfile from '@/pages/agent/MyProfile'
-import AgentLayout from '@/components/layout/AgentLayout'
+import AgentDashboard from "@/pages/agent/Dashboard";
+import MyOutlets from "@/pages/agent/MyOutlets";
+import OutletDetail from "@/pages/agent/OutletDetail";
+import StartVisit from "@/pages/agent/StartVisit";
+import VisitHistory from "@/pages/agent/VisitHistory";
+import MyPhotos from "@/pages/agent/MyPhotos";
+import MyMessages from "@/pages/agent/MyMessages";
+import MyProfile from "@/pages/agent/MyProfile";
+import AgentLayout from "@/components/layout/AgentLayout";
+import Sale from "@/pages/agent/Sales";
 
 // Admin pages
-import AdminDashboard from '@/pages/admin/Dashboard'
-import AgentList from '@/pages/admin/AgentList'
-import AgentDetail from '@/pages/admin/AgentDetail'
-import OutletList from '@/pages/admin/OutletList'
-import OutletDetailAdmin from '@/pages/admin/OutletDetail'
-import LiveTracking from '@/pages/admin/LiveTracking'
-import VisitsPage from '@/pages/admin/VisitsPage'
-import PhotosGallery from '@/pages/admin/PhotosGallery'
-import CommentsPage from '@/pages/admin/CommentsPage'
-import MessagesPage from '@/pages/admin/MessagesPage'
-import ReportsPage from '@/pages/admin/ReportsPage'
-import AuditLogsPage from '@/pages/admin/AuditLogsPage'
-import SettingsPage from '@/pages/admin/SettingsPage'
-import AdminProfile from '@/pages/admin/AdminProfile'
-import AdminLayout from '@/components/layout/AdminLayout'
+import AdminDashboard from "@/pages/admin/Dashboard";
+import AgentList from "@/pages/admin/AgentList";
+import AgentDetail from "@/pages/admin/AgentDetail";
+import OutletList from "@/pages/admin/OutletList";
+import OutletDetailAdmin from "@/pages/admin/OutletDetail";
+import LiveTracking from "@/pages/admin/LiveTracking";
+import VisitsPage from "@/pages/admin/VisitsPage";
+import PhotosGallery from "@/pages/admin/PhotosGallery";
+import CommentsPage from "@/pages/admin/CommentsPage";
+import MessagesPage from "@/pages/admin/MessagesPage";
+import ReportsPage from "@/pages/admin/ReportsPage";
+import AuditLogsPage from "@/pages/admin/AuditLogsPage";
+import SettingsPage from "@/pages/admin/SettingsPage";
+import AdminProfile from "@/pages/admin/AdminProfile";
+import AdminLayout from "@/components/layout/AdminLayout";
 
 function App() {
-  const { loading, profile } = useAuth()
+  const { loading, profile } = useAuth();
 
-  if (loading) return <LoadingScreen />
+  if (loading) return <LoadingScreen />;
 
   return (
     <Routes>
@@ -65,6 +66,7 @@ function App() {
         <Route path="photos" element={<MyPhotos />} />
         <Route path="messages" element={<MyMessages />} />
         <Route path="profile" element={<MyProfile />} />
+        <Route path="sale" element={<Sale />} />
       </Route>
 
       {/* Admin routes */}
@@ -97,7 +99,10 @@ function App() {
         path="/"
         element={
           profile ? (
-            <Navigate to={profile.role === 'admin' ? '/admin' : '/agent'} replace />
+            <Navigate
+              to={profile.role === "admin" ? "/admin" : "/agent"}
+              replace
+            />
           ) : (
             <Navigate to="/login" replace />
           )
@@ -107,7 +112,7 @@ function App() {
       {/* Catch-all */}
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
-  )
+  );
 }
 
-export default App
+export default App;

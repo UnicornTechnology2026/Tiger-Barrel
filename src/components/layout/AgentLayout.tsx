@@ -7,6 +7,7 @@ import {
   MessageSquare,
   User,
   LogOut,
+  ShoppingBag,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
@@ -22,6 +23,7 @@ const navItems = [
   { to: "/agent/photos", icon: Image, label: "Photos" },
   { to: "/agent/messages", icon: MessageSquare, label: "Messages" },
   { to: "/agent/profile", icon: User, label: "Profile" },
+  { to: "/agent/sale", icon: ShoppingBag, label: "Sale" },
 ];
 
 export default function AgentLayout() {

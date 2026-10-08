@@ -102,7 +102,7 @@ function StatCard({
   href?: string;
 }) {
   const content = (
-    <div className="card flex items-center gap-4 p-5 transition-shadow hover:shadow-md">
+    <div className="card flex items-center gap-4 p-5 transition-shadow hover:shadow-md blur-0">
       <div
         className={`flex h-12 w-12 items-center justify-center rounded-xl ${color}`}
       >
@@ -150,7 +150,7 @@ export default function AdminDashboard() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-xl font-bold text-slate-900">Dashboard</h1>
+        <h1 className="text-xl font-bold text-white">Dashboard</h1>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -219,8 +219,8 @@ export default function AdminDashboard() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-slate-100 text-left text-slate-500">
-                <th className="px-5 py-3 font-medium">Promoter</th>
                 <th className="px-5 py-3 font-medium">Outlet</th>
+                <th className="px-5 py-3 font-medium">Promoter</th>
                 <th className="px-5 py-3 font-medium">Status</th>
                 <th className="px-5 py-3 font-medium">Time</th>
               </tr>
@@ -241,11 +241,11 @@ export default function AdminDashboard() {
                     key={v.id as string}
                     className="border-b border-slate-50 hover:bg-slate-50"
                   >
-                    <td className="px-5 py-3 font-medium text-slate-900">
-                      {(v.agent as { full_name?: string })?.full_name ?? "—"}
-                    </td>
                     <td className="px-5 py-3 text-slate-600">
                       {(v.outlet as { name?: string })?.name ?? "—"}
+                    </td>
+                    <td className="px-5 py-3 font-medium text-slate-900">
+                      {(v.agent as { full_name?: string })?.full_name ?? "—"}
                     </td>
                     <td className="px-5 py-3">
                       <span

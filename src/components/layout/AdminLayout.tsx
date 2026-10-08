@@ -11,13 +11,14 @@ import {
   Settings,
   LogOut,
   Shield,
-  Menu,
   X,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
 import logoText from "@/assest/logo_text.png";
+import desktopBg from "@/assest/desktop_view.png";
+import mobileBg from "@/assest/mobile_view.png";
 
 const navItems = [
   { to: "/admin", icon: LayoutDashboard, label: "Dashboard", end: true },
@@ -93,7 +94,17 @@ export default function AdminLayout() {
   );
 
   return (
-    <div className="flex min-h-screen bg-slate-50">
+    <div className="relative isolate flex min-h-screen bg-slate-50">
+      <div
+        aria-hidden
+        className="fixed inset-0 -z-10 bg-cover bg-center bg-no-repeat lg:hidden"
+        style={{ backgroundImage: `url(${mobileBg})` }}
+      />
+      <div
+        aria-hidden
+        className="fixed inset-0 -z-10 hidden bg-cover bg-center bg-no-repeat lg:block"
+        style={{ backgroundImage: `url(${desktopBg})` }}
+      />
       {/* Desktop sidebar */}
       <aside className="hidden w-64 shrink-0 flex-col border-r border-brand-900 bg-brand-700 bg-cover bg-center lg:flex">
         <NavContent />

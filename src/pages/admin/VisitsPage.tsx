@@ -64,8 +64,8 @@ export default function VisitsPage() {
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-slate-100 bg-slate-50 text-left text-slate-500">
-              <th className="px-5 py-3 font-medium">Promoters</th>
               <th className="px-5 py-3 font-medium">Outlet</th>
+              <th className="px-5 py-3 font-medium">Promoters</th>
               <th className="hidden px-5 py-3 font-medium md:table-cell">
                 Check-in
               </th>
@@ -100,13 +100,13 @@ export default function VisitsPage() {
                   key={v.id}
                   className="border-b border-slate-50 hover:bg-slate-50"
                 >
-                  <td className="px-5 py-3 font-medium">
-                    {(v as Visit & { agent?: { full_name: string } }).agent
-                      ?.full_name ?? "—"}
-                  </td>
                   <td className="px-5 py-3">
                     {(v as Visit & { outlet?: { name: string } }).outlet
                       ?.name ?? "—"}
+                  </td>
+                  <td className="px-5 py-3 font-medium">
+                    {(v as Visit & { agent?: { full_name: string } }).agent
+                      ?.full_name ?? "—"}
                   </td>
                   <td className="hidden px-5 py-3 text-slate-500 md:table-cell">
                     {v.check_in_time

@@ -1,10 +1,21 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Calendar, Check, Plus, Store, User, X } from "lucide-react";
+import {
+  Calendar,
+  Check,
+  Plus,
+  Store,
+  User,
+  X,
+  ShoppingBag,
+  Users,
+  CheckCircle2,
+  XCircle,
+  Target,
+} from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/supabase";
-import { EmptyState } from "@/components/shared/EmptyState";
 import { cn, getTodayISO } from "@/lib/utils";
 import type { OutletAssignment, SaleSheet } from "@/types";
 
@@ -201,26 +212,42 @@ export default function Sale() {
 
   return (
     <div className="space-y-4">
-      <h1 className="text-lg font-bold text-slate-900">Sale</h1>
+      {/* Title + promoter/date chips (same position, dashboard look) */}
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-brand-950 via-brand-800 to-brand-600 p-5 text-white shadow-lg">
+        <div className="pointer-events-none absolute -right-14 -top-14 h-48 w-48 rounded-full bg-gold-400/20 blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-16 left-1/3 h-40 w-40 rounded-full bg-white/10 blur-3xl" />
 
-      <div className="flex flex-wrap gap-2">
-        <div className="flex items-center gap-1.5 rounded-lg bg-slate-100 px-2.5 py-1.5 text-xs text-slate-700">
-          <User className="h-3.5 w-3.5 text-slate-500" />
-          <span className="text-slate-500">Promoter</span>
-          {profile?.full_name ?? "—"}
-        </div>
-        <div className="flex items-center gap-1.5 rounded-lg bg-slate-100 px-2.5 py-1.5 text-xs text-slate-700">
-          <Calendar className="h-3.5 w-3.5 text-slate-500" />
-          {today}
+        <div className="relative">
+          <div className="mb-2 inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs font-medium text-gold-300 ring-1 ring-inset ring-gold-400/30">
+            <Target className="h-3.5 w-3.5" />
+            Today&apos;s Sales
+          </div>
+          <h1 className="flex items-center gap-2 text-xl font-bold tracking-tight">
+            <ShoppingBag className="h-5 w-5 text-gold-300" />
+            Sale
+          </h1>
+
+          <div className="mt-3 flex flex-wrap gap-2">
+            <div className="flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1.5 text-xs text-white ring-1 ring-inset ring-white/15">
+              <User className="h-3.5 w-3.5 text-gold-300" />
+              <span className="text-white/60">Promoter</span>
+              {profile?.full_name ?? "—"}
+            </div>
+            <div className="flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1.5 text-xs text-white ring-1 ring-inset ring-white/15">
+              <Calendar className="h-3.5 w-3.5 text-gold-300" />
+              {today}
+            </div>
+          </div>
         </div>
       </div>
 
+      {/* Outlet select */}
       <div>
-        <label className="label flex items-center gap-1.5">
-          <Store className="h-4 w-4 text-slate-500" /> Outlet
+        <label className="mb-1.5 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-slate-500">
+          <Store className="h-4 w-4 text-brand-600" /> Outlet
         </label>
         <select
-          className="input"
+          className="input rounded-xl shadow-sm"
           value={selectedOutletId}
           onChange={(e) => {
             setOutletId(e.target.value);
@@ -239,42 +266,52 @@ export default function Sale() {
       </div>
 
       {!selectedOutletId ? (
-        <EmptyState
-          icon={Store}
-          title="No outlet assigned"
-          description="You need an outlet assigned for today to record sales."
-        />
+        <div className="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-slate-200 bg-white/60 px-6 py-14 text-center">
+          <div className="mb-4 rounded-full bg-brand-50 p-5 ring-8 ring-brand-50/50">
+            <Store className="h-8 w-8 text-brand-600" />
+          </div>
+          <h3 className="text-base font-semibold text-slate-900">
+            No outlet assigned
+          </h3>
+          <p className="mt-1 max-w-xs text-sm text-slate-500">
+            You need an outlet assigned for today to record sales.
+          </p>
+        </div>
       ) : (
         <>
+          {/* 2x2 stat tiles */}
           <div className="grid grid-cols-2 gap-2.5">
-            <div className="rounded-lg bg-slate-100 p-3">
-              <p className="text-xs text-slate-500">Total contact</p>
-              <p className="text-2xl font-semibold text-slate-900">
-                {totalContact}
-              </p>
-            </div>
-            <div className="rounded-lg bg-slate-100 p-3">
-              <p className="text-xs text-slate-500">Total converted</p>
-              <p className="text-2xl font-semibold text-emerald-600">
-                {totalConverted}
-              </p>
-            </div>
-            <div className="rounded-lg bg-slate-100 p-3">
-              <p className="text-xs text-slate-500">Not converted</p>
-              <p className="text-2xl font-semibold text-red-600">
-                {totalNotConverted}
-              </p>
-            </div>
-            <div className="rounded-lg bg-slate-100 p-3">
-              <p className="text-xs text-slate-500">Direct</p>
-              <p className="text-2xl font-semibold text-slate-900">{direct}</p>
-            </div>
+            <StatTile
+              icon={Users}
+              label="Total contact"
+              value={totalContact}
+              tone="brand"
+            />
+            <StatTile
+              icon={CheckCircle2}
+              label="Total converted"
+              value={totalConverted}
+              tone="green"
+            />
+            <StatTile
+              icon={XCircle}
+              label="Not converted"
+              value={totalNotConverted}
+              tone="red"
+            />
+            <StatTile
+              icon={ShoppingBag}
+              label="Direct"
+              value={direct}
+              tone="gold"
+            />
           </div>
 
+          {/* Add brand */}
           <div>
             <div className="flex gap-2">
               <input
-                className="input flex-1"
+                className="input flex-1 rounded-xl shadow-sm"
                 type="text"
                 placeholder="Royal Stag"
                 aria-label="Brand name"
@@ -289,7 +326,7 @@ export default function Sale() {
               />
               <button
                 type="button"
-                className="btn-primary shrink-0"
+                className="btn-primary shrink-0 rounded-xl"
                 onClick={addBrand}
                 disabled={addBrandMutation.isPending}
               >
@@ -299,10 +336,14 @@ export default function Sale() {
             {error && <p className="mt-1.5 text-sm text-red-600">{error}</p>}
           </div>
 
+          {/* Brand cards */}
           {isLoading ? (
             <div className="space-y-3">
               {[1, 2, 3].map((i) => (
-                <div key={i} className="card h-36 animate-pulse bg-slate-100" />
+                <div
+                  key={i}
+                  className="h-36 animate-pulse rounded-2xl bg-gradient-to-br from-slate-100 to-slate-200"
+                />
               ))}
             </div>
           ) : (
@@ -312,17 +353,29 @@ export default function Sale() {
               const nc = ncOf(row);
               const selected = sel[name] ?? null;
               return (
-                <div key={name} className="card p-4">
+                <div
+                  key={name}
+                  className="relative overflow-hidden rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-200"
+                >
+                  {selected !== null && (
+                    <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-brand-500 to-gold-400" />
+                  )}
+
                   <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-                    <h3 className="font-semibold text-slate-900">{name}</h3>
+                    <h3 className="flex items-center gap-2 font-semibold text-slate-900">
+                      <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-gold-400 text-xs font-bold text-brand-950 ring-1 ring-inset ring-gold-500/30">
+                        {name.charAt(0).toUpperCase()}
+                      </span>
+                      {name}
+                    </h3>
                     <div className="flex flex-wrap gap-1.5">
-                      <span className="rounded-md bg-slate-100 px-2 py-0.5 text-xs text-slate-600">
+                      <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-600">
                         Contact {row?.contact_count ?? 0}
                       </span>
-                      <span className="rounded-md bg-emerald-50 px-2 py-0.5 text-xs text-emerald-700">
+                      <span className="rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-medium text-emerald-700 ring-1 ring-inset ring-emerald-200">
                         Converted {sum(conv)}
                       </span>
-                      <span className="rounded-md bg-red-50 px-2 py-0.5 text-xs text-red-700">
+                      <span className="rounded-full bg-red-50 px-2.5 py-0.5 text-xs font-medium text-red-700 ring-1 ring-inset ring-red-200">
                         Not converted {sum(nc)}
                       </span>
                     </div>
@@ -340,10 +393,10 @@ export default function Sale() {
                           }))
                         }
                         className={cn(
-                          "flex flex-col items-center gap-1.5 rounded-lg border px-1 py-2.5 transition-colors",
+                          "flex flex-col items-center gap-1.5 rounded-xl px-1 py-2.5 ring-1 ring-inset transition-all active:scale-[0.97]",
                           selected === si
-                            ? "border-brand-500 bg-brand-50"
-                            : "border-slate-200 bg-white hover:bg-slate-50",
+                            ? "bg-brand-50 ring-2 ring-brand-500"
+                            : "bg-white ring-slate-200 hover:ring-brand-300",
                         )}
                       >
                         <span className="text-sm font-semibold text-slate-900">
@@ -373,14 +426,14 @@ export default function Sale() {
                       </span>
                       <button
                         type="button"
-                        className="btn bg-emerald-600 text-white hover:bg-emerald-700"
+                        className="btn rounded-xl bg-emerald-600 text-white hover:bg-emerald-700"
                         onClick={() => decide(name, true)}
                       >
                         <Check className="h-4 w-4" /> Converted
                       </button>
                       <button
                         type="button"
-                        className="btn-danger"
+                        className="btn-danger rounded-xl"
                         onClick={() => decide(name, false)}
                       >
                         <X className="h-4 w-4" /> Not converted
@@ -392,29 +445,76 @@ export default function Sale() {
             })
           )}
 
-          <div className="rounded-xl bg-slate-100 p-4">
-            <h3 className="mb-2.5 text-sm font-semibold text-slate-900">
+          {/* Totals by size */}
+          <div className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-200">
+            <h3 className="mb-2.5 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+              <ShoppingBag className="h-4 w-4 text-brand-600" />
               Totals by size
             </h3>
             <div className="grid grid-cols-5 gap-2 text-center">
               {SIZES.map((size, i) => (
                 <div
                   key={size}
-                  className="rounded-lg border border-slate-200 bg-white px-1 py-2"
+                  className="rounded-xl bg-slate-50 px-1 py-2 ring-1 ring-inset ring-slate-200"
                 >
                   <p className="text-xs font-semibold text-slate-900">
                     {size} ml
                   </p>
-                  <p className="text-xs text-emerald-600">
+                  <p className="text-xs font-medium text-emerald-600">
                     {convBySize[i]} sold
                   </p>
-                  <p className="text-xs text-red-600">{ncBySize[i]} missed</p>
+                  <p className="text-xs font-medium text-red-600">
+                    {ncBySize[i]} missed
+                  </p>
                 </div>
               ))}
             </div>
           </div>
         </>
       )}
+    </div>
+  );
+}
+
+/* ───────── Small helper component ───────── */
+
+function StatTile({
+  icon: Icon,
+  label,
+  value,
+  tone,
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  value: number | string;
+  tone: "brand" | "green" | "red" | "gold";
+}) {
+  const tones = {
+    brand: { icon: "bg-brand-50 text-brand-600", value: "text-slate-900" },
+    green: {
+      icon: "bg-emerald-50 text-emerald-600",
+      value: "text-emerald-600",
+    },
+    red: { icon: "bg-red-50 text-red-600", value: "text-red-600" },
+    gold: { icon: "bg-gold-400/20 text-gold-500", value: "text-slate-900" },
+  }[tone];
+
+  return (
+    <div className="flex items-center gap-3 rounded-2xl bg-white p-3 shadow-sm ring-1 ring-slate-200">
+      <span
+        className={cn(
+          "flex h-10 w-10 shrink-0 items-center justify-center rounded-xl",
+          tones.icon,
+        )}
+      >
+        <Icon className="h-5 w-5" />
+      </span>
+      <div className="min-w-0">
+        <p className="truncate text-[11px] text-slate-500">{label}</p>
+        <p className={cn("text-2xl font-bold leading-tight", tones.value)}>
+          {value}
+        </p>
+      </div>
     </div>
   );
 }

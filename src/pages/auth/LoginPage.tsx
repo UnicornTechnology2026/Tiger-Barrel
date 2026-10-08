@@ -1,13 +1,20 @@
 import { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { Navigate, Link } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useAuth } from "@/contexts/AuthContext";
-import { Eye, EyeOff, Loader2 } from "lucide-react";
+import {
+  Eye,
+  EyeOff,
+  Loader2,
+  Mail,
+  Lock,
+  ShieldCheck,
+  ArrowRight,
+} from "lucide-react";
 import { toast } from "sonner";
 import logo from "@/assest/logo.png";
-import bgPrint from "@/assest/bg print.png";
 
 const schema = z.object({
   email: z.string().email("Enter a valid email"),
@@ -18,7 +25,6 @@ type FormData = z.infer<typeof schema>;
 
 export default function LoginPage() {
   const { signIn, profile } = useAuth();
-  const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
@@ -29,8 +35,9 @@ export default function LoginPage() {
   } = useForm<FormData>({ resolver: zodResolver(schema) });
 
   if (profile) {
-    navigate(profile.role === "admin" ? "/admin" : "/agent", { replace: true });
-    return null;
+    return (
+      <Navigate to={profile.role === "admin" ? "/admin" : "/agent"} replace />
+    );
   }
 
   const onSubmit = async (data: FormData) => {
@@ -45,59 +52,99 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-brand-600 bg-cover bg-center p-4">
-      <div className="w-full max-w-md">
-        <div className="mb-8 text-center">
-          <img
-            src={logo}
-            alt="Tiger's Barrel"
-            className="mx-auto mb-3 h-28 w-auto drop-shadow-[0_4px_12px_rgba(0,0,0,0.45)]"
-          />
-          <h1 className="text-3xl font-bold tracking-wide text-white">
-            Tiger's Barrel
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-gradient-to-br from-brand-950 via-brand-800 to-brand-600 p-4">
+      {/* decorative glows */}
+      <div className="pointer-events-none absolute -right-24 -top-24 h-80 w-80 rounded-full bg-gold-400/20 blur-3xl" />
+      <div className="pointer-events-none absolute -bottom-28 -left-16 h-72 w-72 rounded-full bg-white/10 blur-3xl" />
+      <div className="pointer-events-none absolute left-1/2 top-1/3 h-56 w-56 -translate-x-1/2 rounded-full bg-brand-400/20 blur-3xl" />
+
+      <div className="relative w-full max-w-md">
+        {/* ───────── Brand ───────── */}
+        <div className="mb-7 text-center">
+          <div className="mx-auto mb-4 flex h-24 w-24 items-center justify-center rounded-3xl bg-white/95 p-3 shadow-xl ring-2 ring-gold-400/60">
+            <img src={logo} alt="Tiger's Barrel" className="h-full w-auto" />
+          </div>
+          <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs font-medium text-gold-300 ring-1 ring-inset ring-gold-400/30">
+            <ShieldCheck className="h-3.5 w-3.5" />
+            Secure Sign In
+          </div>
+          <h1 className="text-3xl font-bold tracking-tight text-white">
+            Tiger&apos;s Barrel
           </h1>
-          <p className="mt-1 text-sm text-red-100">Sign in to continue</p>
+          <p className="mt-1 text-sm text-white/70">
+            Sign in to continue to your dashboard
+          </p>
         </div>
+
+        {/* ───────── Form card ───────── */}
         <form
           onSubmit={handleSubmit(onSubmit)}
-          className="card space-y-5 border-gold-400/60 p-6 shadow-xl sm:p-8"
+          className="relative space-y-5 overflow-hidden rounded-2xl bg-white p-6 shadow-2xl ring-1 ring-gold-400/40 sm:p-8"
         >
+          <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-brand-500 via-gold-400 to-brand-500" />
+
+          <div>
+            <h2 className="text-lg font-bold text-slate-900">Welcome back</h2>
+            <p className="text-sm text-slate-500">
+              Enter your credentials to access your account.
+            </p>
+          </div>
+
+          {/* Email */}
           <div>
             <label className="label" htmlFor="email">
               Email
             </label>
-            <input
-              id="email"
-              type="email"
-              autoComplete="email"
-              className="input"
-              placeholder="you@company.com"
-              {...register("email")}
-            />
+            <div className="relative">
+              <Mail className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+              <input
+                id="email"
+                type="email"
+                autoComplete="email"
+                className="input rounded-xl pl-10"
+                placeholder="you@company.com"
+                {...register("email")}
+              />
+            </div>
             {errors.email && (
               <p className="mt-1 text-xs text-red-600">
                 {errors.email.message}
               </p>
             )}
           </div>
+
+          {/* Password */}
           <div>
-            <label className="label" htmlFor="password">
-              Password
-            </label>
+            <div className="mb-1.5 flex items-center justify-between">
+              <label
+                className="text-sm font-medium text-slate-700"
+                htmlFor="password"
+              >
+                Password
+              </label>
+              <Link
+                to="/forgot-password"
+                className="text-xs font-semibold text-brand-600 hover:text-brand-700"
+              >
+                Forgot password?
+              </Link>
+            </div>
             <div className="relative">
+              <Lock className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
               <input
                 id="password"
                 type={showPassword ? "text" : "password"}
                 autoComplete="current-password"
-                className="input pr-10"
+                className="input rounded-xl pl-10 pr-11"
                 placeholder="••••••••"
                 {...register("password")}
               />
               <button
                 type="button"
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                className="absolute right-3 top-1/2 -translate-y-1/2 rounded-md p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
                 onClick={() => setShowPassword((v) => !v)}
                 tabIndex={-1}
+                aria-label={showPassword ? "Hide password" : "Show password"}
               >
                 {showPassword ? (
                   <EyeOff className="h-4 w-4" />
@@ -112,17 +159,11 @@ export default function LoginPage() {
               </p>
             )}
           </div>
-          <div className="flex justify-end">
-            <Link
-              to="/forgot-password"
-              className="text-sm font-medium text-red-600 hover:text-red-700"
-            >
-              Forgot password?
-            </Link>
-          </div>
+
+          {/* Submit */}
           <button
             type="submit"
-            className="btn-danger w-full btn-lg"
+            className="btn-primary btn-lg w-full rounded-xl shadow-lg shadow-brand-600/30"
             disabled={submitting}
           >
             {submitting ? (
@@ -130,11 +171,15 @@ export default function LoginPage() {
                 <Loader2 className="h-4 w-4 animate-spin" /> Signing in...
               </>
             ) : (
-              "Sign in"
+              <>
+                Sign in <ArrowRight className="h-4 w-4" />
+              </>
             )}
           </button>
         </form>
-        <p className="mt-6 text-center text-xs text-red-100/80">
+
+        <p className="mt-6 flex items-center justify-center gap-1.5 text-center text-xs text-white/60">
+          <ShieldCheck className="h-3.5 w-3.5 text-gold-300" />
           Secure access for authorized personnel only
         </p>
       </div>

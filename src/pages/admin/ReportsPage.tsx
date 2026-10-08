@@ -53,7 +53,6 @@ export default function ReportsPage() {
     const headers = [
       "Date",
       "Agent",
-      "Employee ID",
       "Outlet",
       "Outlet Code",
       "Area",

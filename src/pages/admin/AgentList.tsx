@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
+import { createClient } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { EmptyState } from "@/components/shared/EmptyState";
@@ -12,17 +13,21 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 
 /**
- * Agents must be created in Supabase Auth first (Dashboard → Auth → Users)
- * with user_metadata: { "role": "agent", "full_name": "..." }
- * Then use this form to set employee_id, territory, etc. by email lookup.
+ * Create a new promoter (Supabase Auth user + profile) or update an existing one by email.
+ * New users are created with a throwaway, non-persisting client so the admin's own
+ * session is never replaced.
  */
 const linkSchema = z.object({
   email: z.string().email(),
   full_name: z.string().min(2),
   phone: z.string().optional(),
-  employee_id: z.string().optional(),
-  territory: z.string().optional(),
-  designation: z.string().optional(),
+  password: z
+    .string()
+    .optional()
+    .refine(
+      (v) => !v || v.length >= 6,
+      "Password must be at least 6 characters",
+    ),
 });
 
 type LinkForm = z.infer<typeof linkSchema>;
@@ -48,8 +53,7 @@ export default function AgentList() {
   const filtered = agents.filter(
     (a) =>
       a.full_name.toLowerCase().includes(search.toLowerCase()) ||
-      a.email.toLowerCase().includes(search.toLowerCase()) ||
-      (a.employee_id ?? "").toLowerCase().includes(search.toLowerCase()),
+      a.email.toLowerCase().includes(search.toLowerCase()),
   );
 
   const {
@@ -61,17 +65,51 @@ export default function AgentList() {
 
   const updateMutation = useMutation({
     mutationFn: async (form: LinkForm) => {
-      const { data: existing, error: findErr } = await supabase
-        .from("profiles")
-        .select("id")
-        .eq("email", form.email)
-        .maybeSingle();
+      const email = form.email.trim().toLowerCase();
 
-      if (findErr) throw findErr;
+      const findProfile = async () => {
+        const { data, error } = await supabase
+          .from("profiles")
+          .select("id")
+          .ilike("email", email)
+          .maybeSingle();
+        if (error) throw error;
+        return data;
+      };
+
+      let existing = await findProfile();
+
       if (!existing) {
-        throw new Error(
-          "No user found with that email. Create the user first in Supabase Auth (Dashboard → Auth → Users) with metadata role=agent, then try again.",
+        if (!form.password) {
+          throw new Error(
+            "No promoter found with that email. Enter a password (min 6 characters) to create a new promoter.",
+          );
+        }
+        // Separate client: does not persist/replace the admin session.
+        const tempClient = createClient(
+          import.meta.env.VITE_SUPABASE_URL as string,
+          import.meta.env.VITE_SUPABASE_ANON_KEY as string,
+          {
+            auth: {
+              persistSession: false,
+              autoRefreshToken: false,
+              detectSessionInUrl: false,
+            },
+          },
         );
+        const { error: signUpErr } = await tempClient.auth.signUp({
+          email,
+          password: form.password,
+          options: { data: { role: "agent", full_name: form.full_name } },
+        });
+        if (signUpErr) throw signUpErr;
+
+        existing = await findProfile();
+        if (!existing) {
+          throw new Error(
+            "User was created but the profile was not found. Check the handle_new_user trigger in Supabase.",
+          );
+        }
       }
 
       const { error } = await supabase
@@ -79,9 +117,6 @@ export default function AgentList() {
         .update({
           full_name: form.full_name,
           phone: form.phone || null,
-          employee_id: form.employee_id || null,
-          territory: form.territory || null,
-          designation: form.designation || null,
           role: "agent",
           status: "active",
           joining_date: new Date().toISOString().split("T")[0],
@@ -99,7 +134,7 @@ export default function AgentList() {
       });
     },
     onSuccess: () => {
-      toast.success("Agent profile updated");
+      toast.success("Promoter saved");
       setShowCreate(false);
       reset();
       qc.invalidateQueries({ queryKey: ["admin-agents"] });
@@ -149,7 +184,7 @@ export default function AgentList() {
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
         <input
           className="input pl-9"
-          placeholder="Search agents..."
+          placeholder="Search promoters..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
@@ -164,8 +199,8 @@ export default function AgentList() {
       ) : filtered.length === 0 ? (
         <EmptyState
           icon={Users}
-          title="No agents found"
-          description="Create users in Supabase Auth with role=agent, then link them here."
+          title="No promoters found"
+          description="Click “Manage Promoter” to add your first promoter."
         />
       ) : (
         <div className="card overflow-hidden">
@@ -173,12 +208,6 @@ export default function AgentList() {
             <thead>
               <tr className="border-b border-slate-100 bg-slate-50 text-left text-slate-500">
                 <th className="px-5 py-3 font-medium">Name</th>
-                <th className="hidden px-5 py-3 font-medium md:table-cell">
-                  Employee ID
-                </th>
-                <th className="hidden px-5 py-3 font-medium lg:table-cell">
-                  Territory
-                </th>
                 <th className="px-5 py-3 font-medium">Status</th>
                 <th className="px-5 py-3 font-medium">Actions</th>
               </tr>
@@ -197,12 +226,6 @@ export default function AgentList() {
                       {a.full_name}
                     </Link>
                     <p className="text-xs text-slate-400">{a.email}</p>
-                  </td>
-                  <td className="hidden px-5 py-3 text-slate-600 md:table-cell">
-                    {a.employee_id || "—"}
-                  </td>
-                  <td className="hidden px-5 py-3 text-slate-600 lg:table-cell">
-                    {a.territory || "—"}
                   </td>
                   <td className="px-5 py-3">
                     <StatusBadge status={a.status} />
@@ -228,12 +251,13 @@ export default function AgentList() {
       {showCreate && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
           <div className="card w-full max-w-md p-6">
-            <h2 className="mb-2 text-lg font-semibold">Link / Update Agent</h2>
+            <h2 className="mb-2 text-lg font-semibold">
+              Add / Update Promoter
+            </h2>
             <p className="mb-4 text-xs text-slate-500">
-              First create the user in Supabase Auth (Users → Add user) with
-              metadata{" "}
-              <code className="rounded bg-slate-100 px-1">{`{"role":"agent","full_name":"..."}`}</code>
-              . Then enter their email here to set employee details.
+              Enter the promoter&apos;s details and a password to create a new
+              login. If the email already exists, the details are updated and
+              the password can be left blank.
             </p>
             <form
               onSubmit={handleSubmit((d) => updateMutation.mutate(d))}
@@ -260,16 +284,19 @@ export default function AgentList() {
                 <input className="input" {...register("phone")} />
               </div>
               <div>
-                <label className="label">Employee ID</label>
-                <input className="input" {...register("employee_id")} />
-              </div>
-              <div>
-                <label className="label">Territory</label>
-                <input className="input" {...register("territory")} />
-              </div>
-              <div>
-                <label className="label">Designation</label>
-                <input className="input" {...register("designation")} />
+                <label className="label">Password</label>
+                <input
+                  className="input"
+                  type="password"
+                  autoComplete="new-password"
+                  placeholder="Required only for a new promoter"
+                  {...register("password")}
+                />
+                {errors.password && (
+                  <p className="text-xs text-red-600">
+                    {errors.password.message}
+                  </p>
+                )}
               </div>
               <div className="flex gap-2 pt-2">
                 <button

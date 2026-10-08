@@ -5,7 +5,14 @@ import { StatusBadge } from "@/components/shared/StatusBadge";
 import { formatDate, getTodayISO } from "@/lib/utils";
 import { ArrowLeft, MapPin } from "lucide-react";
 import { toast } from "sonner";
-import type { Outlet, Visit, Photo, Comment, Profile } from "@/types";
+import type {
+  Outlet,
+  Visit,
+  Photo,
+  Comment,
+  Profile,
+  OutletAssignment,
+} from "@/types";
 import { useState } from "react";
 
 export default function OutletDetailAdmin() {
@@ -86,6 +93,22 @@ export default function OutletDetailAdmin() {
     },
   });
 
+  const { data: assignments = [] } = useQuery({
+    queryKey: ["admin-outlet-assignments", id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("outlet_assignments")
+        .select(
+          "*, agent:profiles!agent_id(id, full_name, email, phone, status)",
+        )
+        .eq("outlet_id", id!)
+        .order("assigned_date", { ascending: false });
+      if (error) throw error;
+      return data as OutletAssignment[];
+    },
+    enabled: !!id,
+  });
+
   const assignMutation = useMutation({
     mutationFn: async () => {
       if (!assignAgentId || !id) throw new Error("Select an agent");
@@ -108,6 +131,7 @@ export default function OutletDetailAdmin() {
       toast.success("Outlet assigned");
       setAssignAgentId("");
       qc.invalidateQueries({ queryKey: ["admin-outlet", id] });
+      qc.invalidateQueries({ queryKey: ["admin-outlet-assignments", id] });
     },
     onError: (err: Error) => toast.error(err.message),
   });
@@ -189,94 +213,60 @@ export default function OutletDetailAdmin() {
 
       <div className="card">
         <div className="border-b border-slate-100 px-5 py-3">
-          <h2 className="font-semibold">Visit History ({visits.length})</h2>
+          <h2 className="font-semibold">
+            Assigned Promoters ({assignments.length})
+          </h2>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-slate-100 text-left text-slate-500">
-                <th className="px-5 py-2 font-medium">Agent</th>
-                <th className="px-5 py-2 font-medium">Check-in</th>
+                <th className="px-5 py-2 font-medium">Promoter</th>
+                <th className="px-5 py-2 font-medium">Phone</th>
+                <th className="px-5 py-2 font-medium">Assigned Date</th>
                 <th className="px-5 py-2 font-medium">Status</th>
               </tr>
             </thead>
             <tbody>
-              {visits.length === 0 ? (
+              {assignments.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={3}
+                    colSpan={4}
                     className="px-5 py-6 text-center text-slate-400"
                   >
-                    No visits yet
+                    No promoter assigned to this outlet yet
                   </td>
                 </tr>
               ) : (
-                visits.map((v) => (
-                  <tr key={v.id} className="border-b border-slate-50">
+                assignments.map((a) => (
+                  <tr key={a.id} className="border-b border-slate-50">
                     <td className="px-5 py-2">
-                      {(v as Visit & { agent?: { full_name: string } }).agent
-                        ?.full_name ?? "—"}
+                      {a.agent ? (
+                        <Link
+                          to={`/admin/agents/${a.agent.id}`}
+                          className="font-medium text-brand-700 hover:underline"
+                        >
+                          {a.agent.full_name}
+                        </Link>
+                      ) : (
+                        "—"
+                      )}
+                      <p className="text-xs text-slate-400">{a.agent?.email}</p>
+                    </td>
+                    <td className="px-5 py-2 text-slate-600">
+                      {a.agent?.phone || "—"}
                     </td>
                     <td className="px-5 py-2 text-slate-500">
-                      {v.check_in_time
-                        ? formatDate(v.check_in_time, "datetime")
-                        : "—"}
+                      {formatDate(a.assigned_date)}
                     </td>
                     <td className="px-5 py-2">
-                      <StatusBadge status={v.status} />
+                      <StatusBadge status={a.active ? "active" : "inactive"} />
                     </td>
                   </tr>
                 ))
               )}
             </tbody>
           </table>
-        </div>
-      </div>
-
-      <div className="grid gap-4 lg:grid-cols-2">
-        <div className="card">
-          <div className="border-b border-slate-100 px-5 py-3">
-            <h2 className="font-semibold">Photos ({photos.length})</h2>
-          </div>
-          <div className="grid grid-cols-4 gap-2 p-4">
-            {photos.length === 0 ? (
-              <p className="col-span-4 py-4 text-center text-sm text-slate-400">
-                No photos
-              </p>
-            ) : (
-              photos.map((p) => (
-                <div
-                  key={p.id}
-                  className="aspect-square rounded-lg bg-slate-100"
-                />
-              ))
-            )}
-          </div>
-        </div>
-        <div className="card">
-          <div className="border-b border-slate-100 px-5 py-3">
-            <h2 className="font-semibold">Comments</h2>
-          </div>
-          <div className="divide-y divide-slate-50">
-            {comments.length === 0 ? (
-              <p className="px-5 py-6 text-center text-sm text-slate-400">
-                No comments
-              </p>
-            ) : (
-              comments.map((c) => (
-                <div key={c.id} className="px-5 py-3">
-                  <p className="text-sm text-slate-700">{c.comment_text}</p>
-                  <p className="mt-1 text-xs text-slate-400">
-                    {
-                      (c as Comment & { agent?: { full_name: string } }).agent
-                        ?.full_name
-                    }{" "}
-                    · {formatDate(c.created_at, "datetime")}
-                  </p>
-                </div>
-              ))
-            )}
-          </div>
         </div>
       </div>
     </div>

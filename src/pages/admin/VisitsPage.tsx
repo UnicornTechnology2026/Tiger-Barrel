@@ -13,11 +13,8 @@ import {
   Clock,
   Radio,
   CheckCircle2,
-  LogIn,
-  LogOut,
   MapPin,
   RefreshCw,
-  Timer,
 } from "lucide-react";
 import type { Visit } from "@/types";
 
@@ -281,13 +278,13 @@ export default function VisitsPage() {
         </div>
       </div>
 
-      {/* ───────── Content ───────── */}
+      {/* ───────── Content (table) ───────── */}
       {isLoading ? (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-          {Array.from({ length: 6 }).map((_, i) => (
+        <div className="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-slate-200">
+          {Array.from({ length: 8 }).map((_, i) => (
             <div
               key={i}
-              className="h-48 animate-pulse rounded-2xl bg-gradient-to-br from-slate-100 to-slate-200"
+              className="h-16 animate-pulse border-b border-slate-100 bg-gradient-to-r from-slate-50 to-slate-100"
             />
           ))}
         </div>
@@ -298,109 +295,148 @@ export default function VisitsPage() {
           description={`No visits match your filters on ${formatDate(date)}. Try another date or status.`}
         />
       ) : (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-          {visible.map((v) => {
-            const duration = getDuration(v);
-            const live = v.status === "in_progress";
-            const hasLoc =
-              v.check_in_latitude != null && v.check_in_longitude != null;
+        <div className="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-slate-200">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-slate-100 bg-gradient-to-r from-brand-950 via-brand-800 to-brand-700 text-left text-xs uppercase tracking-wide text-white/80">
+                  <th className="px-5 py-3.5 font-semibold">Promoter</th>
+                  <th className="px-5 py-3.5 font-semibold">Outlet</th>
+                  <th className="hidden px-5 py-3.5 font-semibold md:table-cell">
+                    Check-in
+                  </th>
+                  <th className="hidden px-5 py-3.5 font-semibold md:table-cell">
+                    Check-out
+                  </th>
+                  <th className="hidden px-5 py-3.5 font-semibold lg:table-cell">
+                    Duration
+                  </th>
+                  <th className="px-5 py-3.5 font-semibold">Status</th>
+                  <th className="hidden px-5 py-3.5 text-right font-semibold sm:table-cell">
+                    Location
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {visible.map((v) => {
+                  const duration = getDuration(v);
+                  const live = v.status === "in_progress";
+                  const hasLoc =
+                    v.check_in_latitude != null && v.check_in_longitude != null;
 
-            return (
-              <div
-                key={v.id}
-                className={cn(
-                  "group relative overflow-hidden rounded-2xl bg-white p-5 shadow-sm ring-1 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl",
-                  live
-                    ? "ring-emerald-200 hover:ring-emerald-300"
-                    : "ring-slate-200 hover:ring-brand-300",
-                )}
-              >
-                {live && (
-                  <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-emerald-400 to-emerald-600" />
-                )}
-
-                {/* Top: promoter + status */}
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex min-w-0 items-center gap-3">
-                    <div className="relative shrink-0">
-                      <span className="flex h-11 w-11 items-center justify-center rounded-full bg-gold-400 text-sm font-bold text-brand-950">
-                        {initials(v.agent?.full_name)}
-                      </span>
-                      {live && (
-                        <span className="absolute -right-0.5 -top-0.5 flex h-3 w-3">
-                          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
-                          <span className="relative inline-flex h-3 w-3 rounded-full bg-emerald-500 ring-2 ring-white" />
-                        </span>
+                  return (
+                    <tr
+                      key={v.id}
+                      className={cn(
+                        "transition-colors",
+                        live
+                          ? "bg-emerald-50/50 hover:bg-emerald-50"
+                          : "hover:bg-brand-50/60",
                       )}
-                    </div>
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-semibold text-slate-900">
-                        {v.agent?.full_name ?? "Unknown promoter"}
-                      </p>
-                      <p className="text-xs text-slate-400">Promoter</p>
-                    </div>
-                  </div>
-                  <StatusBadge status={v.status} />
-                </div>
+                    >
+                      {/* Promoter */}
+                      <td className="px-5 py-3.5">
+                        <div className="flex items-center gap-3">
+                          <div className="relative shrink-0">
+                            <span className="flex h-10 w-10 items-center justify-center rounded-full bg-gold-400 text-sm font-bold text-brand-950">
+                              {initials(v.agent?.full_name)}
+                            </span>
+                            {live && (
+                              <span className="absolute -right-0.5 -top-0.5 flex h-3 w-3">
+                                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+                                <span className="relative inline-flex h-3 w-3 rounded-full bg-emerald-500 ring-2 ring-white" />
+                              </span>
+                            )}
+                          </div>
+                          <p className="truncate font-semibold text-slate-900">
+                            {v.agent?.full_name ?? "Unknown promoter"}
+                          </p>
+                        </div>
+                      </td>
 
-                {/* Outlet */}
-                <div className="mt-4 flex items-start gap-2 rounded-xl bg-slate-50 p-3">
-                  <Store className="mt-0.5 h-4 w-4 shrink-0 text-brand-600" />
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-medium text-slate-900">
-                      {v.outlet?.name ?? "—"}
-                    </p>
-                    {v.outlet?.area && (
-                      <p className="truncate text-xs text-slate-500">
-                        {v.outlet.area}
-                      </p>
-                    )}
-                  </div>
-                </div>
+                      {/* Outlet */}
+                      <td className="px-5 py-3.5">
+                        <div className="flex items-center gap-2">
+                          <Store className="h-4 w-4 shrink-0 text-brand-600" />
+                          <div className="min-w-0">
+                            <p className="truncate font-medium text-slate-900">
+                              {v.outlet?.name ?? "—"}
+                            </p>
+                            {v.outlet?.area && (
+                              <p className="truncate text-xs text-slate-500">
+                                {v.outlet.area}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      </td>
 
-                {/* Times */}
-                <div className="mt-4 grid grid-cols-3 gap-2">
-                  <TimeTile
-                    icon={LogIn}
-                    label="Check-in"
-                    value={
-                      v.check_in_time
-                        ? formatDate(v.check_in_time, "time")
-                        : "—"
-                    }
-                  />
-                  <TimeTile
-                    icon={LogOut}
-                    label="Check-out"
-                    value={
-                      v.check_out_time
-                        ? formatDate(v.check_out_time, "time")
-                        : "—"
-                    }
-                  />
-                  <TimeTile
-                    icon={Timer}
-                    label={live ? "Elapsed" : "Duration"}
-                    value={duration ?? "—"}
-                    highlight={live}
-                  />
-                </div>
+                      {/* Check-in */}
+                      <td className="hidden whitespace-nowrap px-5 py-3.5 text-slate-700 md:table-cell">
+                        {v.check_in_time
+                          ? formatDate(v.check_in_time, "time")
+                          : "—"}
+                      </td>
 
-                {/* Footer */}
-                {hasLoc && (
-                  <a
-                    href={`https://www.google.com/maps?q=${v.check_in_latitude},${v.check_in_longitude}`}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="mt-4 inline-flex items-center gap-1.5 text-xs font-medium text-brand-600 transition-colors hover:text-brand-800"
-                  >
-                    <MapPin className="h-3.5 w-3.5" />
-                    View check-in location
-                  </a>
-                )}
-              </div>
-            );
-          })}
+                      {/* Check-out */}
+                      <td className="hidden whitespace-nowrap px-5 py-3.5 text-slate-700 md:table-cell">
+                        {v.check_out_time
+                          ? formatDate(v.check_out_time, "time")
+                          : "—"}
+                      </td>
+
+                      {/* Duration */}
+                      <td className="hidden whitespace-nowrap px-5 py-3.5 lg:table-cell">
+                        {duration ? (
+                          <span
+                            className={cn(
+                              "font-semibold",
+                              live ? "text-emerald-700" : "text-slate-800",
+                            )}
+                          >
+                            {duration}
+                            {live && (
+                              <span className="ml-1 text-xs font-normal text-emerald-600">
+                                elapsed
+                              </span>
+                            )}
+                          </span>
+                        ) : (
+                          <span className="text-slate-400">—</span>
+                        )}
+                      </td>
+
+                      {/* Status */}
+                      <td className="px-5 py-3.5">
+                        <StatusBadge status={v.status} />
+                      </td>
+
+                      {/* Location */}
+                      <td className="hidden px-5 py-3.5 text-right sm:table-cell">
+                        {hasLoc ? (
+                          <a
+                            href={`https://www.google.com/maps?q=${v.check_in_latitude},${v.check_in_longitude}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="inline-flex items-center gap-1.5 whitespace-nowrap text-xs font-medium text-brand-600 transition-colors hover:text-brand-800"
+                          >
+                            <MapPin className="h-3.5 w-3.5" />
+                            View map
+                          </a>
+                        ) : (
+                          <span className="text-slate-400">—</span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="border-t border-slate-100 bg-slate-50 px-5 py-3 text-xs text-slate-500">
+            Showing {visible.length} of {visits.length} visits
+          </div>
         </div>
       )}
     </div>
@@ -427,47 +463,6 @@ function StatChip({
           {label}
         </p>
       </div>
-    </div>
-  );
-}
-
-function TimeTile({
-  icon: Icon,
-  label,
-  value,
-  highlight,
-}: {
-  icon: React.ComponentType<{ className?: string }>;
-  label: string;
-  value: string;
-  highlight?: boolean;
-}) {
-  return (
-    <div
-      className={cn(
-        "rounded-xl p-2.5 ring-1 ring-inset",
-        highlight
-          ? "bg-emerald-50 ring-emerald-200"
-          : "bg-white ring-slate-200",
-      )}
-    >
-      <div className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-slate-400">
-        <Icon
-          className={cn(
-            "h-3 w-3",
-            highlight ? "text-emerald-600" : "text-brand-600",
-          )}
-        />
-        {label}
-      </div>
-      <p
-        className={cn(
-          "mt-1 truncate text-sm font-semibold",
-          highlight ? "text-emerald-700" : "text-slate-900",
-        )}
-      >
-        {value}
-      </p>
     </div>
   );
 }

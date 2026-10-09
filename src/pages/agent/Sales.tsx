@@ -425,9 +425,6 @@ export default function Sale() {
 
                   {selected !== null && (
                     <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-slate-100 pt-3">
-                      <span className="min-w-[120px] flex-1 text-sm text-slate-600">
-                        {SIZES[selected]} ml: did the customer buy?
-                      </span>
                       <button
                         type="button"
                         className="btn rounded-xl bg-emerald-600 text-white hover:bg-emerald-700"

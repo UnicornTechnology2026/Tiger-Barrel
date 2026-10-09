@@ -20,7 +20,11 @@ import { cn, getTodayISO } from "@/lib/utils";
 import type { OutletAssignment, SaleSheet } from "@/types";
 
 const SIZES = ["90", "180", "375", "750", "1000"] as const;
-const DEFAULT_BRANDS = ["Tiger Barrel (Direct sale)", "MDR", "Derby"];
+const DEFAULT_BRANDS = [
+  "Tiger's Barrel (Direct sale)",
+  "Master Delight",
+  "Derby",
+];
 
 const sum = (a: number[]) => a.reduce((x, y) => x + y, 0);
 const convOf = (r?: SaleSheet) =>

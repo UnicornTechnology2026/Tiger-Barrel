@@ -5,8 +5,8 @@ export type SaleRow = SaleSheet & {
 };
 
 const SIZES = ["90", "180", "375", "750", "1000"] as const;
-const DIRECT = "Tiger Barrel (Direct sale)";
-const BRAND_ORDER = [DIRECT, "MDR", "Derby"];
+const DIRECT = "Tiger's Barrel (Direct sale)";
+const BRAND_ORDER = [DIRECT, "Master Delight", "Derby"];
 
 const GREY = "FF9A9A9A";
 const LIGHT = "FFE2E2E2";
@@ -135,7 +135,7 @@ export async function exportSalesExcel(rows: SaleRow[], fileName: string) {
       bottom: line,
     });
     put(row + 1, 7, row + 1, 8, "Brand:", { bold: true, align: "right" });
-    put(row + 1, 9, row + 1, 13, "Tiger Barrel", { bottom: line });
+    put(row + 1, 9, row + 1, 13, "Tiger's Barrel", { bottom: line });
 
     // ---- table header ----
     const h1 = row + 3;

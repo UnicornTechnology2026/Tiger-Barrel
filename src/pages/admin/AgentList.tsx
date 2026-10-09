@@ -18,6 +18,8 @@ import {
   Power,
   X,
   ChevronRight,
+  Trash2,
+  AlertTriangle,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn, formatDate } from "@/lib/utils";
@@ -61,6 +63,7 @@ export default function AgentList() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [showCreate, setShowCreate] = useState(false);
+  const [agentToDelete, setAgentToDelete] = useState<Profile | null>(null);
   const qc = useQueryClient();
 
   const { data: agents = [], isLoading } = useQuery({
@@ -208,6 +211,29 @@ export default function AgentList() {
     onError: (err: Error) => toast.error(err.message),
   });
 
+  const deleteMutation = useMutation({
+    mutationFn: async (agent: Profile) => {
+      // SQL function in Supabase: deletes the promoter's data, profile and auth login
+      const { error } = await supabase.rpc("delete_agent", {
+        agent_uuid: agent.id,
+      });
+      if (error) throw error;
+      await supabase.from("audit_logs").insert({
+        actor_id: (await supabase.auth.getUser()).data.user?.id,
+        action: "delete_agent",
+        entity_type: "profile",
+        entity_id: null,
+        metadata: { name: agent.full_name, email: agent.email },
+      });
+    },
+    onSuccess: () => {
+      toast.success("Promoter deleted");
+      setAgentToDelete(null);
+      qc.invalidateQueries({ queryKey: ["admin-agents"] });
+    },
+    onError: (err: Error) => toast.error(err.message),
+  });
+
   return (
     <div className="space-y-6">
       {/* ───────── Hero header ───────── */}
@@ -294,11 +320,11 @@ export default function AgentList() {
 
       {/* ───────── Content ───────── */}
       {isLoading ? (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        <div className="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-slate-200">
           {Array.from({ length: 8 }).map((_, i) => (
             <div
               key={i}
-              className="h-56 animate-pulse rounded-2xl bg-gradient-to-br from-slate-100 to-slate-200"
+              className="h-16 animate-pulse border-b border-slate-100 bg-gradient-to-r from-slate-50 to-slate-100"
             />
           ))}
         </div>
@@ -313,104 +339,155 @@ export default function AgentList() {
           }
         />
       ) : (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {filtered.map((a) => {
-            const isActive = a.status === "active";
-            return (
-              <div
-                key={a.id}
-                className="group relative flex flex-col overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-slate-200 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:ring-brand-300"
-              >
-                {/* cover */}
-                <div className="relative h-20 ">
-                  <div className="pointer-events-none absolute -right-6 -top-8 h-28 w-28 rounded-full bg-gold-400/20 blur-2xl" />
-                  <span
-                    className={cn(
-                      "absolute right-3 top-3 rounded-full px-2.5 py-1 text-[11px] font-medium backdrop-blur-sm",
-                      isActive
-                        ? "bg-emerald-500/20 text-emerald-100 ring-1 ring-inset ring-emerald-300/40"
-                        : "bg-black/40 text-white/80 ring-1 ring-inset ring-white/20",
-                    )}
-                  >
-                    {isActive ? "Active" : a.status}
-                  </span>
-                </div>
-
-                {/* avatar */}
-                <div className="-mt-8 px-5">
-                  {a.profile_photo_url ? (
-                    <img
-                      src={a.profile_photo_url}
-                      alt={a.full_name}
-                      className="h-16 w-16 rounded-full object-cover ring-4 ring-white"
-                    />
-                  ) : (
-                    <span className="flex h-16 w-16 items-center justify-center rounded-full bg-gold-400 text-lg font-bold text-brand-950 ring-4 ring-white">
-                      {initials(a.full_name)}
-                    </span>
-                  )}
-                </div>
-
-                {/* body */}
-                <div className="flex flex-1 flex-col px-5 pb-4 pt-3">
-                  <Link
-                    to={`/admin/agents/${a.id}`}
-                    className="flex items-center justify-between gap-2 font-semibold text-slate-900 transition-colors hover:text-brand-700"
-                  >
-                    <span className="truncate">{a.full_name}</span>
-                    <ChevronRight className="h-4 w-4 shrink-0 text-slate-300 transition-transform group-hover:translate-x-0.5 group-hover:text-brand-600" />
-                  </Link>
-
-                  <ul className="mt-2 space-y-1.5 text-xs text-slate-500">
-                    <li className="flex items-center gap-2">
-                      <Mail className="h-3.5 w-3.5 shrink-0 text-brand-600" />
-                      <span className="truncate">{a.email}</span>
-                    </li>
-                    {a.phone && (
-                      <li className="flex items-center gap-2">
-                        <Phone className="h-3.5 w-3.5 shrink-0 text-brand-600" />
-                        <span className="truncate">{a.phone}</span>
-                      </li>
-                    )}
-                    {a.territory && (
-                      <li className="flex items-center gap-2">
-                        <MapPin className="h-3.5 w-3.5 shrink-0 text-brand-600" />
-                        <span className="truncate">{a.territory}</span>
-                      </li>
-                    )}
-                    <li className="flex items-center gap-2">
-                      <Clock className="h-3.5 w-3.5 shrink-0 text-brand-600" />
-                      <span className="truncate">
-                        {a.last_active_at
-                          ? `Last active ${formatDate(a.last_active_at, "datetime")}`
-                          : "Never active"}
-                      </span>
-                    </li>
-                  </ul>
-
-                  <div className="mt-auto flex items-center justify-between gap-2 border-t border-slate-100 pt-3">
-                    <StatusBadge status={a.status} />
-                    <button
-                      type="button"
-                      disabled={toggleStatus.isPending}
-                      onClick={() =>
-                        toggleStatus.mutate({ id: a.id, status: a.status })
-                      }
-                      className={cn(
-                        "inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors disabled:opacity-50",
-                        isActive
-                          ? "border-slate-200 bg-white text-slate-600 hover:border-red-200 hover:bg-red-50 hover:text-red-600"
-                          : "border-brand-600 bg-brand-600 text-white hover:bg-brand-700",
-                      )}
+        <div className="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-slate-200">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-slate-100 bg-gradient-to-r from-brand-950 via-brand-800 to-brand-700 text-left text-xs uppercase tracking-wide text-white/80">
+                  <th className="px-5 py-3.5 font-semibold">Promoter</th>
+                  <th className="hidden px-5 py-3.5 font-semibold md:table-cell">
+                    Email
+                  </th>
+                  <th className="hidden px-5 py-3.5 font-semibold lg:table-cell">
+                    Phone
+                  </th>
+                  <th className="hidden px-5 py-3.5 font-semibold xl:table-cell">
+                    Territory
+                  </th>
+                  <th className="hidden px-5 py-3.5 font-semibold xl:table-cell">
+                    Last Active
+                  </th>
+                  <th className="px-5 py-3.5 font-semibold">Status</th>
+                  <th className="px-5 py-3.5 text-right font-semibold">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {filtered.map((a) => {
+                  const isActive = a.status === "active";
+                  return (
+                    <tr
+                      key={a.id}
+                      className="group transition-colors hover:bg-brand-50/60"
                     >
-                      <Power className="h-3.5 w-3.5" />
-                      {isActive ? "Deactivate" : "Activate"}
-                    </button>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
+                      <td className="px-5 py-3.5">
+                        <div className="flex items-center gap-3">
+                          {a.profile_photo_url ? (
+                            <img
+                              src={a.profile_photo_url}
+                              alt={a.full_name}
+                              className="h-10 w-10 shrink-0 rounded-full object-cover"
+                            />
+                          ) : (
+                            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gold-400 text-sm font-bold text-brand-950">
+                              {initials(a.full_name)}
+                            </span>
+                          )}
+                          <div className="min-w-0">
+                            <Link
+                              to={`/admin/agents/${a.id}`}
+                              className="block truncate font-semibold text-slate-900 transition-colors hover:text-brand-700"
+                            >
+                              {a.full_name}
+                            </Link>
+                            <p className="truncate text-xs text-slate-400 md:hidden">
+                              {a.email}
+                            </p>
+                          </div>
+                        </div>
+                      </td>
+
+                      <td className="hidden px-5 py-3.5 text-slate-600 md:table-cell">
+                        <span className="flex items-center gap-1.5">
+                          <Mail className="h-3.5 w-3.5 shrink-0 text-brand-600" />
+                          <span className="truncate">{a.email}</span>
+                        </span>
+                      </td>
+
+                      <td className="hidden px-5 py-3.5 text-slate-600 lg:table-cell">
+                        {a.phone ? (
+                          <span className="flex items-center gap-1.5">
+                            <Phone className="h-3.5 w-3.5 shrink-0 text-brand-600" />
+                            {a.phone}
+                          </span>
+                        ) : (
+                          "—"
+                        )}
+                      </td>
+
+                      <td className="hidden px-5 py-3.5 text-slate-600 xl:table-cell">
+                        {a.territory ? (
+                          <span className="flex items-center gap-1.5">
+                            <MapPin className="h-3.5 w-3.5 shrink-0 text-brand-600" />
+                            {a.territory}
+                          </span>
+                        ) : (
+                          "—"
+                        )}
+                      </td>
+
+                      <td className="hidden px-5 py-3.5 text-xs text-slate-500 xl:table-cell">
+                        <span className="flex items-center gap-1.5">
+                          <Clock className="h-3.5 w-3.5 shrink-0 text-brand-600" />
+                          {a.last_active_at
+                            ? formatDate(a.last_active_at, "datetime")
+                            : "Never active"}
+                        </span>
+                      </td>
+
+                      <td className="px-5 py-3.5">
+                        <StatusBadge status={a.status} />
+                      </td>
+
+                      <td className="px-5 py-3.5">
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            type="button"
+                            disabled={toggleStatus.isPending}
+                            onClick={() =>
+                              toggleStatus.mutate({
+                                id: a.id,
+                                status: a.status,
+                              })
+                            }
+                            className={cn(
+                              "inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors disabled:opacity-50",
+                              isActive
+                                ? "border-slate-200 bg-white text-slate-600 hover:border-red-200 hover:bg-red-50 hover:text-red-600"
+                                : "border-brand-600 bg-brand-600 text-white hover:bg-brand-700",
+                            )}
+                          >
+                            <Power className="h-3.5 w-3.5" />
+                            {isActive ? "Deactivate" : "Activate"}
+                          </button>
+                          <button
+                            type="button"
+                            title="Delete promoter"
+                            onClick={() => setAgentToDelete(a)}
+                            className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-red-50 hover:text-red-600"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                          <Link
+                            to={`/admin/agents/${a.id}`}
+                            className="rounded-lg p-1.5 text-slate-300 transition-colors hover:bg-brand-50 hover:text-brand-600"
+                            title="View promoter"
+                          >
+                            <ChevronRight className="h-5 w-5" />
+                          </Link>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="border-t border-slate-100 bg-slate-50 px-5 py-3 text-xs text-slate-500">
+            Showing {filtered.length} of {agents.length} promoters
+          </div>
         </div>
       )}
 
@@ -504,6 +581,56 @@ export default function AgentList() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* ───────── Delete confirmation modal ───────── */}
+      {agentToDelete && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-brand-950/70 p-4 backdrop-blur-md"
+          onClick={() => !deleteMutation.isPending && setAgentToDelete(null)}
+        >
+          <div
+            className="w-full max-w-md overflow-hidden rounded-2xl bg-white shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-start gap-3 p-6">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-red-100 text-red-600">
+                <AlertTriangle className="h-5 w-5" />
+              </span>
+              <div>
+                <h2 className="text-lg font-semibold text-slate-900">
+                  Delete promoter?
+                </h2>
+                <p className="mt-1 text-sm text-slate-600">
+                  <span className="font-semibold">
+                    {agentToDelete.full_name}
+                  </span>{" "}
+                  ({agentToDelete.email}) will be permanently deleted, including
+                  their login, visits, photos, comments, sales sheets and
+                  messages. This cannot be undone.
+                </p>
+              </div>
+            </div>
+            <div className="flex gap-2 border-t border-slate-100 bg-slate-50 px-6 py-4">
+              <button
+                type="button"
+                className="btn-secondary flex-1"
+                disabled={deleteMutation.isPending}
+                onClick={() => setAgentToDelete(null)}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="flex-1 rounded-xl bg-red-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-red-700 disabled:opacity-60"
+                disabled={deleteMutation.isPending}
+                onClick={() => deleteMutation.mutate(agentToDelete)}
+              >
+                {deleteMutation.isPending ? "Deleting..." : "Yes, delete"}
+              </button>
+            </div>
           </div>
         </div>
       )}

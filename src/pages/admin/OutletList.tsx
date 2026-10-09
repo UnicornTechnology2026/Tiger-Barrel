@@ -16,6 +16,8 @@ import {
   Power,
   X,
   ChevronRight,
+  Trash2,
+  AlertTriangle,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -45,6 +47,7 @@ export default function OutletList() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [showCreate, setShowCreate] = useState(false);
+  const [outletToDelete, setOutletToDelete] = useState<Outlet | null>(null);
   const qc = useQueryClient();
 
   const { data: outlets = [], isLoading } = useQuery({
@@ -150,6 +153,33 @@ export default function OutletList() {
     },
     onSuccess: () => {
       toast.success("Status updated");
+      qc.invalidateQueries({ queryKey: ["admin-outlets"] });
+    },
+    onError: (err: Error) => toast.error(err.message),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (outlet: Outlet) => {
+      const { error, count } = await supabase
+        .from("outlets")
+        .delete({ count: "exact" })
+        .eq("id", outlet.id);
+      if (error) throw error;
+      if (!count) {
+        throw new Error(
+          "Delete was blocked. Check admin delete permission (RLS).",
+        );
+      }
+      await logAudit({
+        action: "delete_outlet",
+        entityType: "outlet",
+        entityId: outlet.id,
+        metadata: { name: outlet.name, code: outlet.outlet_code },
+      });
+    },
+    onSuccess: () => {
+      toast.success("Outlet deleted");
+      setOutletToDelete(null);
       qc.invalidateQueries({ queryKey: ["admin-outlets"] });
     },
     onError: (err: Error) => toast.error(err.message),
@@ -372,6 +402,14 @@ export default function OutletList() {
                             <Power className="h-3.5 w-3.5" />
                             {isActive ? "Deactivate" : "Activate"}
                           </button>
+                          <button
+                            type="button"
+                            className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-red-50 hover:text-red-600"
+                            title="Delete outlet"
+                            onClick={() => setOutletToDelete(o)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
                           <Link
                             to={`/admin/outlets/${o.id}`}
                             className="rounded-lg p-1.5 text-slate-300 transition-colors hover:bg-brand-50 hover:text-brand-600"
@@ -533,6 +571,53 @@ export default function OutletList() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+      {/* ───────── Delete confirmation modal ───────── */}
+      {outletToDelete && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-brand-950/70 p-4 backdrop-blur-md"
+          onClick={() => !deleteMutation.isPending && setOutletToDelete(null)}
+        >
+          <div
+            className="w-full max-w-md overflow-hidden rounded-2xl bg-white shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-start gap-3 p-6">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-red-100 text-red-600">
+                <AlertTriangle className="h-5 w-5" />
+              </span>
+              <div>
+                <h2 className="text-lg font-semibold text-slate-900">
+                  Delete outlet?
+                </h2>
+                <p className="mt-1 text-sm text-slate-600">
+                  <span className="font-semibold">{outletToDelete.name}</span> (
+                  {outletToDelete.outlet_code}) will be permanently deleted
+                  along with its assignments, visits, photos, comments and sales
+                  sheets. This cannot be undone.
+                </p>
+              </div>
+            </div>
+            <div className="flex gap-2 border-t border-slate-100 bg-slate-50 px-6 py-4">
+              <button
+                type="button"
+                className="btn-secondary flex-1"
+                disabled={deleteMutation.isPending}
+                onClick={() => setOutletToDelete(null)}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="flex-1 rounded-xl bg-red-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-red-700 disabled:opacity-60"
+                disabled={deleteMutation.isPending}
+                onClick={() => deleteMutation.mutate(outletToDelete)}
+              >
+                {deleteMutation.isPending ? "Deleting..." : "Yes, delete"}
+              </button>
+            </div>
           </div>
         </div>
       )}

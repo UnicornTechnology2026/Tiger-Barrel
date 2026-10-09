@@ -121,13 +121,43 @@ export default function OutletDetailAdmin() {
   const assignMutation = useMutation({
     mutationFn: async () => {
       if (!assignAgentId || !id) throw new Error("Select an agent");
+
+      // Currently active assignment for this outlet (if any)
+      const current = assignments.find((a) => a.active);
+
+      if (current?.agent_id === assignAgentId) {
+        throw new Error("This promoter is already assigned to this outlet");
+      }
+
+      // 1) Deactivate the existing active assignment (an outlet can have only one)
+      if (current) {
+        const { error: deactivateErr } = await supabase
+          .from("outlet_assignments")
+          .update({ active: false })
+          .eq("outlet_id", id)
+          .eq("active", true);
+        if (deactivateErr) throw deactivateErr;
+      }
+
+      // 2) Create the new active assignment
       const { error } = await supabase.from("outlet_assignments").insert({
         agent_id: assignAgentId,
         outlet_id: id,
         assigned_date: getTodayISO(),
         active: true,
       });
-      if (error) throw error;
+
+      if (error) {
+        // roll back: re-activate the previous assignment so the outlet isn't left unassigned
+        if (current) {
+          await supabase
+            .from("outlet_assignments")
+            .update({ active: true })
+            .eq("id", current.id);
+        }
+        throw error;
+      }
+
       await logAudit({
         action: "assign_outlet",
         entityType: "outlet_assignment",
@@ -138,11 +168,15 @@ export default function OutletDetailAdmin() {
           outlet_id: id,
           outlet_name: outlet?.name,
           outlet_code: outlet?.outlet_code,
+          previous_agent_id: current?.agent_id ?? null,
+          previous_agent_name: (current as any)?.agent?.full_name ?? null,
         },
       });
+
+      return { reassigned: !!current };
     },
-    onSuccess: () => {
-      toast.success("Outlet assigned");
+    onSuccess: (res) => {
+      toast.success(res?.reassigned ? "Outlet reassigned" : "Outlet assigned");
       setAssignAgentId("");
       qc.invalidateQueries({ queryKey: ["admin-outlet", id] });
       qc.invalidateQueries({ queryKey: ["admin-outlet-assignments", id] });

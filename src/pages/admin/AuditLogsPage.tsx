@@ -24,6 +24,8 @@ import {
   Power,
   PowerOff,
   Pencil,
+  Trash2,
+  UserMinus,
   type LucideIcon,
 } from "lucide-react";
 import { formatDate, getTodayISO, cn } from "@/lib/utils";
@@ -65,6 +67,11 @@ const ACTION_META: Record<
     icon: UserX,
     tone: "bg-red-50 text-red-700 ring-red-200",
   },
+  delete_agent: {
+    label: "Promoter deleted",
+    icon: UserMinus,
+    tone: "bg-red-50 text-red-700 ring-red-200",
+  },
   create_outlet: {
     label: "Outlet created",
     icon: PlusCircle,
@@ -83,6 +90,11 @@ const ACTION_META: Record<
   deactivate_outlet: {
     label: "Outlet deactivated",
     icon: PowerOff,
+    tone: "bg-red-50 text-red-700 ring-red-200",
+  },
+  delete_outlet: {
+    label: "Outlet deleted",
+    icon: Trash2,
     tone: "bg-red-50 text-red-700 ring-red-200",
   },
 };
@@ -118,12 +130,6 @@ function initials(name?: string | null) {
     .toUpperCase();
 }
 
-function formatValue(v: unknown): string {
-  if (v === null || v === undefined) return "—";
-  if (typeof v === "object") return JSON.stringify(v);
-  return String(v);
-}
-
 type NameMap = Record<string, { name: string }>;
 
 const OUTLET_ACTIONS = [
@@ -131,18 +137,28 @@ const OUTLET_ACTIONS = [
   "update_outlet",
   "activate_outlet",
   "deactivate_outlet",
+  "delete_outlet",
   "assign_outlet",
 ];
 
-/** Human-readable one-liner for outlet-related events. */
+/** Human-readable one-liner for outlet / promoter events. */
 function summarize(
   log: AuditLog,
   outlets: NameMap,
   people: NameMap,
 ): string | null {
-  if (!OUTLET_ACTIONS.includes(log.action)) return null;
   const m = (log.metadata ?? {}) as Record<string, unknown>;
   const str = (v: unknown) => (typeof v === "string" && v ? v : undefined);
+
+  if (log.action === "delete_agent") {
+    const name = str(m.name) ?? "a promoter";
+    const email = str(m.email);
+    return email
+      ? `Promoter deleted: ${name} (${email})`
+      : `Promoter deleted: ${name}`;
+  }
+
+  if (!OUTLET_ACTIONS.includes(log.action)) return null;
 
   const outletId = str(m.outlet_id) ?? log.entity_id ?? undefined;
   const outletName =
@@ -168,6 +184,8 @@ function summarize(
       return `Outlet activated: ${label}`;
     case "deactivate_outlet":
       return `Outlet deactivated: ${label}`;
+    case "delete_outlet":
+      return `Outlet deleted: ${label}`;
     case "assign_outlet": {
       const agentId = str(m.agent_id);
       const agent =
@@ -527,13 +545,13 @@ export default function AuditLogsPage() {
         )}
       </div>
 
-      {/* ───────── Content ───────── */}
+      {/* ───────── Content (table) ───────── */}
       {isLoading ? (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {Array.from({ length: 9 }).map((_, i) => (
+        <div className="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-slate-200">
+          {Array.from({ length: 8 }).map((_, i) => (
             <div
               key={i}
-              className="h-36 animate-pulse rounded-2xl bg-gradient-to-br from-slate-100 to-slate-200"
+              className="h-16 animate-pulse border-b border-slate-100 bg-gradient-to-r from-slate-50 to-slate-100"
             />
           ))}
         </div>
@@ -572,45 +590,67 @@ export default function AuditLogsPage() {
           }
         />
       ) : (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {visible.map((log, i) => {
-            const meta = actionMeta(log.action);
-            const Icon = meta.icon;
-            const name = log.actor?.full_name ?? "System";
-            const summary = summarize(log, outletMap, peopleMap);
-            return (
-              <button
-                key={log.id}
-                onClick={() => setViewerIndex(i)}
-                className="group relative flex flex-col gap-4 overflow-hidden rounded-2xl bg-white p-4 text-left shadow-sm ring-1 ring-slate-200 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:ring-brand-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
-              >
-                {/* time badge */}
-                <div className="flex items-start justify-between gap-2">
-                  <span
-                    className={cn(
-                      "flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ring-1 ring-inset transition-transform duration-300 group-hover:scale-110",
-                      meta.tone,
-                    )}
-                  >
-                    <Icon className="h-5 w-5" />
-                  </span>
-                  <span className="rounded-full bg-black/60 px-2.5 py-1 text-[11px] font-medium text-white">
-                    {formatDate(log.created_at, "time")}
-                  </span>
-                </div>
+        <div className="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-slate-200">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-slate-100 bg-gradient-to-r from-brand-950 via-brand-800 to-brand-700 text-left text-xs uppercase tracking-wide text-white/80">
+                  <th className="px-5 py-3.5 font-semibold">Date &amp; Time</th>
+                  <th className="px-5 py-3.5 font-semibold">Action</th>
+                  <th className="hidden px-5 py-3.5 font-semibold md:table-cell">
+                    Details
+                  </th>
+                  <th className="hidden px-5 py-3.5 font-semibold lg:table-cell">
+                    Entity
+                  </th>
+                  <th className="px-5 py-3.5 font-semibold">Admin</th>
+                  <th className="px-5 py-3.5 text-right font-semibold">View</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {visible.map((log, i) => {
+                  const meta = actionMeta(log.action);
+                  const Icon = meta.icon;
+                  const name = log.actor?.full_name ?? "System";
+                  const summary = summarize(log, outletMap, peopleMap);
+                  return (
+                    <tr
+                      key={log.id}
+                      onClick={() => setViewerIndex(i)}
+                      className="group cursor-pointer transition-colors hover:bg-brand-50/60"
+                    >
+                      <td className="whitespace-nowrap px-5 py-3.5">
+                        <p className="font-medium text-slate-800">
+                          {formatDate(log.created_at)}
+                        </p>
+                        <p className="text-xs text-slate-400">
+                          {formatDate(log.created_at, "time")}
+                        </p>
+                      </td>
 
-                <div className="min-w-0">
-                  <p className="truncate text-base font-semibold text-slate-900">
-                    {meta.label}
-                  </p>
-                  <p className="mt-0.5 flex items-start gap-1.5 text-sm text-slate-500">
-                    <Store className="mt-0.5 h-3.5 w-3.5 shrink-0 text-slate-400" />
-                    {summary ? (
-                      <span className="min-w-0 break-words font-medium text-slate-700">
-                        {summary}
-                      </span>
-                    ) : (
-                      <span className="min-w-0 truncate">
+                      <td className="px-5 py-3.5">
+                        <span
+                          className={cn(
+                            "inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-medium ring-1 ring-inset",
+                            meta.tone,
+                          )}
+                        >
+                          <Icon className="h-3.5 w-3.5" />
+                          {meta.label}
+                        </span>
+                      </td>
+
+                      <td className="hidden max-w-[360px] px-5 py-3.5 text-slate-600 md:table-cell">
+                        {summary ? (
+                          <span className="line-clamp-2 break-words">
+                            {summary}
+                          </span>
+                        ) : (
+                          <span className="text-slate-400">—</span>
+                        )}
+                      </td>
+
+                      <td className="hidden px-5 py-3.5 text-slate-600 lg:table-cell">
                         {humanize(log.entity_type)}
                         {log.entity_id && (
                           <span className="font-mono text-xs text-slate-400">
@@ -618,26 +658,32 @@ export default function AuditLogsPage() {
                             · {log.entity_id.slice(0, 8)}…
                           </span>
                         )}
-                      </span>
-                    )}
-                  </p>
-                </div>
+                      </td>
 
-                {/* footer */}
-                <div className="mt-auto flex items-center gap-2 border-t border-slate-100 pt-3">
-                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gold-400 text-[11px] font-bold text-brand-950">
-                    {initials(log.actor?.full_name)}
-                  </span>
-                  <span className="truncate text-sm font-medium text-slate-700">
-                    {name}
-                  </span>
-                  <span className="ml-auto shrink-0 text-xs text-slate-400">
-                    {formatDate(log.created_at)}
-                  </span>
-                </div>
-              </button>
-            );
-          })}
+                      <td className="px-5 py-3.5">
+                        <div className="flex items-center gap-2">
+                          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gold-400 text-[11px] font-bold text-brand-950">
+                            {initials(log.actor?.full_name)}
+                          </span>
+                          <span className="truncate font-medium text-slate-700">
+                            {name}
+                          </span>
+                        </div>
+                      </td>
+
+                      <td className="px-5 py-3.5 text-right">
+                        <ChevronRight className="ml-auto h-5 w-5 text-slate-300 transition-colors group-hover:text-brand-600" />
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="border-t border-slate-100 bg-slate-50 px-5 py-3 text-xs text-slate-500">
+            Showing {visible.length} of {logs.length} events
+          </div>
         </div>
       )}
 
@@ -755,7 +801,6 @@ function DetailPanel({
 }) {
   const meta = actionMeta(log.action);
   const Icon = meta.icon;
-  const entries = log.metadata ? Object.entries(log.metadata) : [];
 
   return (
     <div

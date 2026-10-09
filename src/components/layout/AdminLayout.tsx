@@ -23,8 +23,8 @@ import mobileBg from "@/assest/mobile_view.png";
 
 const navItems = [
   { to: "/admin", icon: LayoutDashboard, label: "Dashboard", end: true },
-  { to: "/admin/agents", icon: Users, label: "Promoters" },
   { to: "/admin/outlets", icon: Store, label: "Outlets" },
+  { to: "/admin/agents", icon: Users, label: "Promoters" },
   { to: "/admin/tracking", icon: Map, label: "Live Tracking" },
   { to: "/admin/visits", icon: ClipboardList, label: "Visits" },
   { to: "/admin/sales", icon: IndianRupee, label: "Sales" },

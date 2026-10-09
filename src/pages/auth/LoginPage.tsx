@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import logo from "@/assest/logo.png";
+import logoText from "@/assest/logo_text.png";
 
 const schema = z.object({
   email: z.string().email("Enter a valid email"),
@@ -60,20 +61,16 @@ export default function LoginPage() {
 
       <div className="relative w-full max-w-md">
         {/* ───────── Brand ───────── */}
-        <div className="mb-7 text-center">
-          <div className="mx-auto mb-4 flex h-24 w-24 items-center justify-center rounded-3xl bg-white/95 p-3 shadow-xl ring-2 ring-gold-400/60">
+        <div className="mb-4 text-center">
+          <div className="mx-auto mb-4 flex h-24 w-24 items-center justify-center rounded-3xl ">
             <img src={logo} alt="Tiger's Barrel" className="h-full w-auto" />
           </div>
-          <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs font-medium text-gold-300 ring-1 ring-inset ring-gold-400/30">
-            <ShieldCheck className="h-3.5 w-3.5" />
-            Secure Sign In
-          </div>
-          <h1 className="text-3xl font-bold tracking-tight text-white">
-            Tiger&apos;s Barrel
-          </h1>
-          <p className="mt-1 text-sm text-white/70">
-            Sign in to continue to your dashboard
-          </p>
+
+          <img
+            src={logoText}
+            alt="Tiger's Barrel"
+            className="mx-auto h-[4.5rem] w-auto"
+          />
         </div>
 
         {/* ───────── Form card ───────── */}

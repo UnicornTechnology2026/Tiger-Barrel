@@ -1,10 +1,5 @@
-import {
-  Outlet,
-  NavLink,
-  Link,
-  useNavigate,
-  useLocation,
-} from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Outlet, NavLink, useNavigate, useLocation } from "react-router-dom";
 import {
   Home,
   MapPin,
@@ -14,7 +9,9 @@ import {
   User,
   LogOut,
   ShoppingBag,
-  Bell,
+  Menu,
+  X,
+  ChevronRight,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
@@ -22,41 +19,26 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import logo from "../../assest/logo.png";
 
-const navItems = [
+/* Bottom navigation: only these 4 */
+const bottomNavItems = [
   { to: "/agent", icon: Home, label: "Home", end: true },
-  { to: "/agent/sale", icon: ShoppingBag, label: "Sale" },
+  { to: "/agent/sale", icon: ShoppingBag, label: "Sales" },
   { to: "/agent/outlets", icon: MapPin, label: "Outlets" },
-  { to: "/agent/history", icon: History, label: "History" },
-  { to: "/agent/photos", icon: Image, label: "Photos" },
-  { to: "/agent/messages", icon: MessageSquare, label: "Messages" },
   { to: "/agent/profile", icon: User, label: "Profile" },
 ];
 
-function initials(name?: string | null) {
-  if (!name) return "?";
-  return name
-    .split(" ")
-    .map((n) => n[0])
-    .slice(0, 2)
-    .join("")
-    .toUpperCase();
-}
-
-function pageTitle(pathname: string) {
-  if (pathname.startsWith("/agent/outlets")) return "Outlets";
-  if (pathname.startsWith("/agent/visit")) return "Visit";
-  if (pathname.startsWith("/agent/history")) return "Visit History";
-  if (pathname.startsWith("/agent/photos")) return "Photos";
-  if (pathname.startsWith("/agent/messages")) return "Messages";
-  if (pathname.startsWith("/agent/profile")) return "Profile";
-  if (pathname.startsWith("/agent/sale")) return "Sale";
-  return "Dashboard";
-}
+/* Hamburger menu items */
+const menuItems = [
+  { to: "/agent/history", icon: History, label: "History" },
+  { to: "/agent/photos", icon: Image, label: "Photos" },
+  { to: "/agent/messages", icon: MessageSquare, label: "Messages" },
+];
 
 export default function AgentLayout() {
   const { profile, signOut } = useAuth();
   const navigate = useNavigate();
-  const { pathname } = useLocation();
+  const location = useLocation();
+  const [menuOpen, setMenuOpen] = useState(false);
 
   const { data: unreadCount } = useQuery({
     queryKey: ["unread-messages", profile?.id],
@@ -73,88 +55,156 @@ export default function AgentLayout() {
     refetchInterval: 30_000,
   });
 
+  // Close the menu whenever the page changes
+  useEffect(() => {
+    setMenuOpen(false);
+  }, [location.pathname]);
+
+  // Esc to close + lock body scroll while the menu is open
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setMenuOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    document.body.style.overflow = "hidden";
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      document.body.style.overflow = "";
+    };
+  }, [menuOpen]);
+
   const handleLogout = async () => {
+    setMenuOpen(false);
     await signOut();
     navigate("/login");
   };
 
-  const unread = unreadCount ?? 0;
+  const hasUnread = !!unreadCount && unreadCount > 0;
 
   return (
     <div className="flex min-h-screen flex-col bg-slate-50">
-      {/* ───────── Top header ───────── */}
-      <header className="sticky top-0 z-30 overflow-hidden bg-gradient-to-br from-brand-950 via-brand-800 to-brand-700 shadow-md">
-        {/* decorative glows */}
-        <div className="pointer-events-none absolute -right-10 -top-10 h-32 w-32 rounded-full bg-gold-400/20 blur-3xl" />
-        <div className="pointer-events-none absolute -bottom-12 left-1/3 h-24 w-24 rounded-full bg-white/10 blur-3xl" />
-        {/* gold accent line */}
-        <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-gold-400/70 to-transparent" />
+      {/* Top bar */}
+      <header className="sticky top-0 z-30 border-b border-brand-900 bg-brand-700 bg-cover bg-center">
+        <div className="mx-auto flex h-14 max-w-lg items-center justify-between px-4">
+          <div className="flex items-center gap-2">
+            {/* Hamburger button */}
+            <button
+              onClick={() => setMenuOpen(true)}
+              className="relative -ml-2 rounded-lg p-2 text-white hover:bg-white/10"
+              aria-label="Open menu"
+            >
+              <Menu className="h-6 w-6" />
+              {hasUnread && (
+                <span className="absolute right-1.5 top-1.5 h-2.5 w-2.5 rounded-full bg-gold-400 ring-2 ring-brand-700" />
+              )}
+            </button>
 
-        <div className="relative mx-auto flex h-16 max-w-lg items-center justify-between gap-3 px-4">
-          {/* Brand + current page */}
-          <Link to="/agent" className="flex min-w-0 items-center gap-3">
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/95 p-1 shadow-sm ring-1 ring-gold-400/40">
-              <img src={logo} alt="Tiger's Barrel" className="h-full w-auto" />
-            </span>
-            <div className="min-w-0">
-              <p className="truncate text-[10px] font-semibold uppercase tracking-[0.18em] text-gold-300">
-                Tiger&apos;s Barrel
+            <img src={logo} alt="Tiger's Barrel" className="h-9 w-auto" />
+            <div>
+              <p className="text-xs font-semibold tracking-wide text-gold-300">
+                Tiger's Barrel
               </p>
-              <p className="truncate text-base font-bold leading-tight text-white">
-                {pageTitle(pathname)}
+              <p className="max-w-[140px] truncate text-sm font-semibold text-white">
+                {profile?.full_name}
               </p>
             </div>
-          </Link>
+          </div>
 
-          {/* Actions */}
-          <div className="flex shrink-0 items-center gap-1.5">
-            <Link
-              to="/agent/messages"
-              className="relative flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-white ring-1 ring-inset ring-white/15 transition-colors hover:bg-white/20"
-              aria-label={
-                unread > 0 ? `${unread} unread messages` : "Notifications"
-              }
-            >
-              <Bell className="h-[18px] w-[18px]" />
-              {unread > 0 && (
-                <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-gold-400 px-1 text-[10px] font-bold text-brand-950 ring-2 ring-brand-800">
-                  {unread > 9 ? "9+" : unread}
-                </span>
-              )}
-            </Link>
+          <button
+            onClick={handleLogout}
+            className="rounded-lg p-2 text-white hover:bg-white/10"
+            aria-label="Logout"
+          >
+            <LogOut className="h-5 w-5" />
+          </button>
+        </div>
+      </header>
 
-            <Link
-              to="/agent/profile"
-              className="flex items-center gap-2 rounded-full bg-white/10 py-1 pl-1 pr-3 ring-1 ring-inset ring-white/15 transition-colors hover:bg-white/20"
-              aria-label="My profile"
-            >
-              {profile?.profile_photo_url ? (
-                <img
-                  src={profile.profile_photo_url}
-                  alt=""
-                  className="h-7 w-7 rounded-full object-cover ring-1 ring-gold-400"
-                />
-              ) : (
-                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-gold-400 text-[11px] font-bold text-brand-950">
-                  {initials(profile?.full_name)}
-                </span>
-              )}
-              <span className="hidden max-w-[84px] truncate text-xs font-semibold text-white min-[380px]:block">
-                {profile?.full_name?.split(" ")[0]}
-              </span>
-            </Link>
-
+      {/* Slide-in hamburger drawer */}
+      <div
+        className={cn(
+          "fixed inset-0 z-40 bg-black/50 backdrop-blur-sm transition-opacity duration-300",
+          menuOpen ? "opacity-100" : "pointer-events-none opacity-0",
+        )}
+        onClick={() => setMenuOpen(false)}
+        aria-hidden="true"
+      />
+      <aside
+        className={cn(
+          "fixed bottom-0 left-0 top-0 z-50 flex w-72 max-w-[80%] flex-col bg-white shadow-2xl transition-transform duration-300",
+          menuOpen ? "translate-x-0" : "-translate-x-full",
+        )}
+        role="dialog"
+        aria-label="Menu"
+      >
+        {/* Drawer header */}
+        <div className="relative overflow-hidden bg-gradient-to-br from-brand-950 via-brand-800 to-brand-600 px-5 py-5 text-white">
+          <div className="pointer-events-none absolute -right-8 -top-8 h-28 w-28 rounded-full bg-gold-400/20 blur-2xl" />
+          <div className="relative flex items-start justify-between gap-3">
+            <div className="flex min-w-0 items-center gap-3">
+              <img src={logo} alt="Tiger's Barrel" className="h-10 w-auto" />
+              <div className="min-w-0">
+                <p className="text-xs font-semibold tracking-wide text-gold-300">
+                  Tiger's Barrel
+                </p>
+                <p className="truncate text-sm font-semibold">
+                  {profile?.full_name}
+                </p>
+              </div>
+            </div>
             <button
-              onClick={handleLogout}
-              className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-white ring-1 ring-inset ring-white/15 transition-colors hover:bg-red-500/70"
-              aria-label="Logout"
-              title="Logout"
+              onClick={() => setMenuOpen(false)}
+              className="rounded-full bg-white/10 p-2 transition hover:bg-white/20"
+              aria-label="Close menu"
             >
-              <LogOut className="h-[18px] w-[18px]" />
+              <X className="h-4 w-4" />
             </button>
           </div>
         </div>
-      </header>
+
+        {/* Drawer links */}
+        <nav className="flex-1 space-y-1 overflow-y-auto p-3">
+          {menuItems.map(({ to, icon: Icon, label }) => (
+            <NavLink
+              key={to}
+              to={to}
+              className={({ isActive }) =>
+                cn(
+                  "flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium transition-colors",
+                  isActive
+                    ? "bg-brand-50 text-brand-700"
+                    : "text-slate-700 hover:bg-slate-100",
+                )
+              }
+            >
+              <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-gold-400/20 text-brand-700">
+                <Icon className="h-5 w-5" />
+              </span>
+              <span className="flex-1">{label}</span>
+              {label === "Messages" && hasUnread && (
+                <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-slate-900 px-1.5 text-[11px] font-bold text-white">
+                  {unreadCount! > 9 ? "9+" : unreadCount}
+                </span>
+              )}
+              <ChevronRight className="h-4 w-4 text-slate-300" />
+            </NavLink>
+          ))}
+        </nav>
+
+        {/* Drawer footer */}
+        <div className="border-t border-slate-100 p-3">
+          <button
+            onClick={handleLogout}
+            className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium text-red-600 transition-colors hover:bg-red-50"
+          >
+            <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-red-50">
+              <LogOut className="h-5 w-5" />
+            </span>
+            Logout
+          </button>
+        </div>
+      </aside>
 
       {/* Main content */}
       <main className="mx-auto w-full max-w-lg flex-1 px-4 py-4 pb-24">
@@ -162,9 +212,9 @@ export default function AgentLayout() {
       </main>
 
       {/* Bottom navigation */}
-      <nav className="fixed bottom-0 left-0 right-0 z-30 border-t border-slate-200 bg-white/95 backdrop-blur safe-area-pb">
+      <nav className="safe-area-pb fixed bottom-0 left-0 right-0 z-30 border-t border-slate-200 bg-white/95 backdrop-blur">
         <div className="mx-auto flex max-w-lg items-center justify-around">
-          {navItems.map(({ to, icon: Icon, label, end }) => (
+          {bottomNavItems.map(({ to, icon: Icon, label, end }) => (
             <NavLink
               key={to}
               to={to}
@@ -182,11 +232,6 @@ export default function AgentLayout() {
                 <>
                   <Icon className={cn("h-5 w-5", isActive && "stroke-[2.5]")} />
                   <span>{label}</span>
-                  {label === "Messages" && unreadCount && unreadCount > 0 ? (
-                    <span className="absolute right-1/4 top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-slate-900 px-1 text-[10px] font-bold text-white">
-                      {unreadCount > 9 ? "9+" : unreadCount}
-                    </span>
-                  ) : null}
                 </>
               )}
             </NavLink>
